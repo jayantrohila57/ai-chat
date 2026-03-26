@@ -1,0 +1,59 @@
+{
+  "editor.quickSuggestions": {
+    "strings": "on"
+  },
+  "editor.wordWrap": "on",
+  "[markdown]": { "editor.wordWrap": "on" },
+  "[plaintext]": { "editor.wordWrap": "on" },
+  "tailwindCSS.experimental.classRegex": [
+    ["cva(?:<[^>]*>)?(([^)]*))", "[\"'`]([^\"'`]*).*?[\"'`]", "(?:twMerge|twJoin)\\(([^\\);]*)[\\);]"]
+  ],
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.preferences.autoImportSpecifierExcludeRegexes": ["^(node:)?os$"],
+  "cSpell.words": [
+    "arcjet",
+    "ARKJET",
+    "arktype",
+    "cmdk",
+    "dicebear",
+    "googleusercontent",
+    "ilike",
+    "neondatabase",
+    "nums",
+    "ORPC",
+    "Squircle",
+    "unlazy",
+    "uuidv",
+    "vaul"
+  ],
+  "editor.dropIntoEditor.preferences": [],
+  "search.exclude": {
+    "**/node_modules": true,
+    // "**/.next": true,
+    "**/.agent": true,
+    "**/.agents": true,
+    "**/.husky": true
+    // "**/migrations": true
+  },
+  "files.exclude": {
+    "**/node_modules": true,
+    // "**/.next": true,
+    "**/.agent": true,
+    "**/.agents": true,
+    "**/.husky": true
+    // "**/migrations": true
+  },
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.biome": "explicit",
+    "source.organizeImports.biome": "explicit"
+  },
+  "eslint.enable": false,
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  }
+}

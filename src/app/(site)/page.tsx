@@ -5,6 +5,7 @@ import { auth } from "@/core/auth/auth";
 import { getServerSession } from "@/core/auth/auth.server";
 import { AuthProviders } from "@/module/auth/auth.providers";
 import { AppBrand, AuthCard, AuthFooterNote } from "@/shared/components/layout/section/auth.card-layout";
+import Section from "@/shared/components/layout/section/section";
 import Shell from "@/shared/components/layout/shell";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -50,41 +51,31 @@ export default async function Home({}: PageProps<"/">) {
 
   return (
     <Shell>
-      <Shell.Section className="flex flex-col">
-        <section className="flex min-h-[calc(100svh-8rem)] flex-col justify-center items-center gap-8">
-          <div className="grid gap-4 lg:grid-cols-[1.4fr_0.9fr]">
-            <div className="space-y-4">
-              <Badge variant="outline">Intelligent AI Workspace</Badge>
-              <div className="space-y-4">
-                <h1 className="max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">
-                  Your personal AI workspace for conversations and ideas.
-                </h1>
-
-                <p className="text-muted-foreground max-w-2xl text-base ">
-                  Ask questions, generate content, brainstorm ideas, or get help with everyday tasks. AI Chat App keeps
-                  your conversations organized, supports file uploads, and lets you continue discussions anytime with
-                  full chat history.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                {isAuthenticated ? (
-                  <Button asChild size="lg">
-                    <Link href={PATH.CHAT.ROOT}>
-                      Start chatting
-                      <ArrowRight className="ml-2 size-4" />
-                    </Link>
-                  </Button>
-                ) : (
-                  <AuthProviders />
-                )}
-
-                <Button asChild variant="outline" size="lg">
-                  <Link href={PATH.CHAT.ROOT}>Upgrade to Pro</Link>
+      <Shell.Section className="flex flex-col h-full w-full justify-center items-center">
+        <Section
+          badge="Intelligent AI Workspace"
+          title="Your personal AI workspace for conversations and ideas."
+          description="Ask questions, generate content, brainstorm ideas, or get help with everyday tasks. AI Chat App keeps your conversations organized, supports file uploads, and lets you continue discussions anytime with full chat history."
+        >
+          <div className="max-w-3xl flex flex-col justify-start items-start gap-4 mb-6">
+            <div className="flex flex-wrap gap-3">
+              {isAuthenticated ? (
+                <Button asChild size="lg">
+                  <Link href={PATH.CHAT.ROOT}>
+                    Start chatting
+                    <ArrowRight className="ml-2 size-4" />
+                  </Link>
                 </Button>
-              </div>
+              ) : (
+                <AuthProviders />
+              )}
+
+              <Button asChild variant="outline" size="lg">
+                <Link href={PATH.PRICING.ROOT}>Upgrade to Pro</Link>
+              </Button>
             </div>
           </div>
+
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {pillars.map((pillar) => (
               <Card key={pillar.title} className="border-border/70">
@@ -101,8 +92,7 @@ export default async function Home({}: PageProps<"/">) {
               </Card>
             ))}
           </div>
-        </section>
-        <AppBrand className="flex h-full items-center justify-center p-0" />
+        </Section>
       </Shell.Section>
     </Shell>
   );

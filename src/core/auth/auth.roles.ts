@@ -17,12 +17,12 @@ const LEGACY_ROLE_MAP: Record<string, AppRole> = {
 };
 
 export function normalizeRole(role: string | null | undefined): AppRole {
-  if (!role) return APP_ROLE.USER;
-  return LEGACY_ROLE_MAP[role] ?? APP_ROLE.USER;
+  if (!role) return APP_ROLE.CUSTOMER;
+  return LEGACY_ROLE_MAP[role] ?? APP_ROLE.CUSTOMER;
 }
 
 export function resolveNewUserRole(role: string | null | undefined): AppRole {
-  return normalizeRole(role);
+  return role ? normalizeRole(role) : APP_ROLE.CUSTOMER;
 }
 
 export const ROLE_GUARD = {

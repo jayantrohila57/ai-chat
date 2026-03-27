@@ -5,6 +5,10 @@ export const PATH = {
   CHAT: {
     ROOT: "/chat" as Route,
   },
+  PRICING: {
+    ROOT: "/pricing" as Route,
+    SUCCESS: "/pricing/success" as Route,
+  },
   AUTH: {
     ROOT: "/auth",
     SIGN_IN: "/auth/sign-in" as Route,

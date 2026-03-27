@@ -1,7 +1,9 @@
 "use client";
 
-import { ChevronsUpDown, Sparkles, UserIcon } from "lucide-react";
+import { ChevronsUpDown, CreditCard, Sparkles, UserIcon } from "lucide-react";
+import Link from "next/link";
 
+import { apiClient } from "@/core/api/api.client";
 import { useSession } from "@/core/auth/auth.client";
 import { SignOutDropdownMenuItem } from "@/module/auth/auth.sign-out-dropdown";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
@@ -14,17 +16,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
+import { PATH } from "@/shared/config/routes";
 import { useSettingsDialog } from "../../provider/global-modal.provider";
 import { SidebarMenuButton } from "../../ui/sidebar";
 
 export function UserDropdown() {
   const { openSettings } = useSettingsDialog();
   const { data: session } = useSession();
+  const { data: viewer } = apiClient.viewer.session.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
   const user = session?.user;
   const fallbackName = session?.user?.name
     ?.split(" ")
     ?.map((name) => name?.[0])
     ?.join("");
+  const hasPaidPlan = Boolean(viewer?.billing?.hasPaidPlan);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -62,13 +70,23 @@ export function UserDropdown() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuGroup>
-          <DropdownMenuItem className="cursor-pointer">
-            <Sparkles />
-            Upgrade to Pro
+          <DropdownMenuItem className="cursor-pointer" asChild>
+            <Link href={PATH.PRICING.ROOT}>
+              <Sparkles />
+              {hasPaidPlan ? "Manage Plan" : "View Plans"}
+            </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer" onClick={() => openSettings("account")}>
-            <UserIcon />
-            Account
+          <DropdownMenuItem className="cursor-pointer" onClick={() => openSettings("subscription")}>
+            <CreditCard />
+            Subscription & Billing
+          </DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer" asChild>
+            `r`n{" "}
+            <Link href={PATH.ACCOUNT.ROOT}>
+              `r`n <UserIcon />
+              `r`n Account`r`n{" "}
+            </Link>
+            `r`n{" "}
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

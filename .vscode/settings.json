@@ -10,16 +10,10 @@
     "editor.wordWrap": "on"
   },
   "tailwindCSS.experimental.classRegex": [
-    [
-      "cva(?:<[^>]*>)?(([^)]*))",
-      "[\"'`]([^\"'`]*).*?[\"'`]",
-      "(?:twMerge|twJoin)\\(([^\\);]*)[\\);]"
-    ]
+    ["cva(?:<[^>]*>)?(([^)]*))", "[\"'`]([^\"'`]*).*?[\"'`]", "(?:twMerge|twJoin)\\(([^\\);]*)[\\);]"]
   ],
   "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.preferences.autoImportSpecifierExcludeRegexes": [
-    "^(node:)?os$"
-  ],
+  "typescript.preferences.autoImportSpecifierExcludeRegexes": ["^(node:)?os$"],
   "cSpell.words": [
     "arcjet",
     "ARKJET",

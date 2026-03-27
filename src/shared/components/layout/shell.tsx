@@ -109,7 +109,7 @@ Shell.Main = Main;
 const SectionVariants = cva("relative", {
   variants: {
     variant: {
-      default: "flex container mx-auto px-0 max-w-5xl ",
+      default: "flex w-full h-full container mx-auto px-0 max-w-5xl ",
     },
   },
   defaultVariants: {

@@ -85,6 +85,14 @@ export async function checkArcjet(request: Request) {
     }
   }
 
+  const isAiChat = path.startsWith("/api/ai/chat");
+  const isUpload = path.startsWith("/api/media/upload");
+  const isApiMutation = path.startsWith("/api/v1");
+
+  if (isAiChat || isUpload || isApiMutation) {
+    return aj.withRule(slidingWindow(restrictiveRateLimitSettings)).protect(request, { userIdOrIp });
+  }
+
   return { isAllowed: () => true, isDenied: () => false, reason: null };
 }
 

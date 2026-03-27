@@ -34,7 +34,11 @@ export function GitHubSignIn() {
   };
 
   return (
-    <Button variant="outline" onClick={handleSignIn} disabled={isLoading} className="flex w-full items-center gap-2">
+    <Button
+      onClick={handleSignIn}
+      disabled={isLoading}
+      className="flex px-8  items-center gap-2 bg-black dark:bg-white text-white dark:text-black hover:bg-black/80 dark:hover:bg-white/80"
+    >
       {isLoading ? <Loader className="h-4 w-4 animate-spin" /> : <Github className="h-4 w-4" />}
       {isLoading ? "Connecting…" : SUPPORTED_OAUTH_PROVIDER_DETAILS.github.name}
     </Button>

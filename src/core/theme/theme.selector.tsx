@@ -16,7 +16,6 @@ export function ModeToggle() {
             size="lg"
             className="data-[state=open]:bg-sidebar-accent group data-[state=open]:text-sidebar-accent-foreground"
             onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
-            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
           >
             <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
               <MoonIcon

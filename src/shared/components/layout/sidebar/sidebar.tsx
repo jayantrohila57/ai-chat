@@ -1,4 +1,8 @@
-import { MessageCircle } from "lucide-react";
+"use client";
+
+import { LogIn, MessageCircle } from "lucide-react";
+import { getClientSession, useSession } from "@/core/auth/auth.client";
+import { getServerSession } from "@/core/auth/auth.server";
 import { ModeToggle } from "@/core/theme/theme.selector";
 import { Separator } from "../../ui/separator";
 import {
@@ -17,6 +21,8 @@ import { NavSecondary } from "./sidebar.nav-secondary";
 import { NavMain } from "./sidebar.navigation";
 
 export function AppSidebar() {
+  const { data: session } = useSession();
+  const isAuthenticated = !!session?.user;
   return (
     <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader className="bg-background rounded-t-xl shadow-sm ">
@@ -41,8 +47,8 @@ export function AppSidebar() {
       </SidebarHeader>
       <Separator />
       <SidebarContent className="h-auto bg-background shadow-sm">
-        <NavMain />
-        <NavRecentChats />
+        {isAuthenticated && <NavMain />}
+        {isAuthenticated && <NavRecentChats />}
         <NavSecondary />
       </SidebarContent>
       <SidebarFooter className="bg-background rounded-b-xl shadow-sm ">
@@ -52,7 +58,26 @@ export function AppSidebar() {
           </SidebarMenuItem>
           <Separator className="my-2" />
           <SidebarMenuItem>
-            <UserDropdown />
+            {isAuthenticated ? (
+              <UserDropdown />
+            ) : (
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    size="lg"
+                    className="data-[state=open]:bg-sidebar-accent group data-[state=open]:text-sidebar-accent-foreground"
+                  >
+                    <div className="flex aspect-square size-8 items-center justify-center rounded-lg ">
+                      <LogIn className="size-4" />
+                    </div>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-medium">Sign In</span>
+                      <span className="truncate text-xs text-muted-foreground font-mono">Access chatting with AI.</span>
+                    </div>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            )}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

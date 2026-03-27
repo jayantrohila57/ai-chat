@@ -1,96 +1,110 @@
 import { ArrowRight, Database, MessageSquareText, Shield, UploadCloud, Workflow } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
+import { auth } from "@/core/auth/auth";
+import { getServerSession } from "@/core/auth/auth.server";
 import { AuthProviders } from "@/module/auth/auth.providers";
-import { AuthCard } from "@/shared/components/layout/section/auth.card-layout";
+import { AppBrand, AuthCard, AuthFooterNote } from "@/shared/components/layout/section/auth.card-layout";
 import Shell from "@/shared/components/layout/shell";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { Separator } from "@/shared/components/ui/separator";
 import { PATH } from "@/shared/config/routes";
 
 export const metadata = {
   title: "AI Chat App v1",
-  description: "A clean AI chat starter with auth, tRPC, Drizzle, uploads, and rate limiting.",
+  description:
+    "Chat with AI, manage conversations, use tools, and securely store your chat history in a clean and modern interface.",
 };
 
 export default async function Home({}: PageProps<"/">) {
+  const session = await getServerSession();
+  const isAuthenticated = !!session?.user;
   const pillars = [
     {
-      title: "Authentication",
-      description: "Better Auth is already wired for email/password, GitHub OAuth, passkeys, and 2FA.",
+      title: "Smart Conversations",
+      description:
+        "Chat naturally with AI and keep your conversations organized. Each chat is saved so you can continue where you left off anytime.",
+      icon: MessageSquareText,
+    },
+    {
+      title: "Secure Accounts",
+      description:
+        "Your chats and account are protected with modern authentication including email login, GitHub sign-in, and optional passkeys.",
       icon: Shield,
     },
     {
-      title: "Type-safe APIs",
-      description: "tRPC stays in place as the application API foundation for upcoming chat features.",
-      icon: Workflow,
-    },
-    {
-      title: "Database",
-      description: "Drizzle and Neon/Postgres remain as the starter data layer for auth, uploads, and future chats.",
+      title: "Reliable Storage",
+      description:
+        "All conversations, attachments, and user data are securely stored so your chat history remains accessible whenever you return.",
       icon: Database,
     },
     {
-      title: "Attachments",
-      description: "Blob uploads remain available so chat attachments and generated assets can plug in later.",
+      title: "Files & Attachments",
+      description:
+        "Upload files or images directly into your conversations so the AI can help analyze, summarize, or generate new content from them.",
       icon: UploadCloud,
     },
   ];
 
   return (
     <Shell>
-      <Shell.Section>
-        <section className=" flex min-h-[calc(100svh-8rem)] flex-col gap-10 px-6 py-24">
-          <div className="grid gap-10 lg:grid-cols-[1.4fr_0.9fr]">
-            <div className="space-y-6">
-              <Badge variant="outline" className="rounded-full px-4 py-1 text-xs uppercase tracking-[0.24em]">
-                AI Chat App v1 Starter
+      <Shell.Section className="flex flex-col">
+        <section className="flex min-h-[calc(100svh-8rem)] flex-col justify-center items-center gap-8">
+          <div className="grid gap-4 lg:grid-cols-[1.4fr_0.9fr]">
+            <div className="space-y-4">
+              <Badge variant="outline">
+                Intelligent AI Workspace
               </Badge>
               <div className="space-y-4">
                 <h1 className="max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">
-                  A stripped-back starting point for building an AI chat product.
+                  Your personal AI workspace for conversations and ideas.
                 </h1>
-                <p className="text-muted-foreground max-w-2xl text-base leading-7 sm:text-lg">
-                  The commerce product has been cleared out. What remains is the reusable stack we want for chat:
-                  authentication, type-safe APIs, database wiring, uploads, rate limiting, and a minimal internal
-                  studio.
+
+                <p className="text-muted-foreground max-w-2xl text-base ">
+                  Ask questions, generate content, brainstorm ideas, or get help with everyday tasks. AI Chat App keeps
+                  your conversations organized, supports file uploads, and lets you continue discussions anytime with
+                  full chat history.
                 </p>
               </div>
+
               <div className="flex flex-wrap gap-3">
-                <Button asChild size="lg">
-                  <Link href={PATH.AUTH.SIGN_UP}>
-                    Create an account
-                    <ArrowRight className="ml-2 size-4" />
-                  </Link>
-                </Button>
+                {isAuthenticated ? (
+                  <Button asChild size="lg">
+                    <Link href={PATH.AUTH.SIGN_UP}>
+                      Start chatting
+                      <ArrowRight className="ml-2 size-4" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <AuthProviders />
+                )}
+
                 <Button asChild variant="outline" size="lg">
-                  <Link href={PATH.STUDIO.ROOT}>Open Studio</Link>
+                  <Link href={PATH.STUDIO.ROOT}>Upgrade to Pro</Link>
                 </Button>
               </div>
             </div>
-
-            <AuthCard
-              title="Sign In"
-              description="Access the AI chat starter and pick up from your saved account state."
-            >
-              <AuthProviders />
-            </AuthCard>
           </div>
-
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {pillars.map((pillar) => (
               <Card key={pillar.title} className="border-border/70">
                 <CardHeader>
-                  <pillar.icon className="text-primary size-5" />
                   <CardTitle className="text-lg">{pillar.title}</CardTitle>
+                  <CardAction>
+                    <pillar.icon className="text-primary size-5" />
+                  </CardAction>
                 </CardHeader>
+
                 <CardContent>
                   <p className="text-muted-foreground text-sm leading-6">{pillar.description}</p>
                 </CardContent>
               </Card>
             ))}
           </div>
-        </section>{" "}
+        </section>
+        <AppBrand className="flex h-full items-center justify-center p-0" />
       </Shell.Section>
     </Shell>
   );

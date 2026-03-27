@@ -31,7 +31,7 @@ export function UserDropdown() {
           className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
         >
           <Avatar className="h-8 w-8 rounded-lg ">
-            <AvatarImage className="rounded-lg" src={user?.image ?? ""} alt={user?.name ?? ""} />
+            <AvatarImage className="rounded-lg" src={user?.image ?? "/avatar.png"} alt={user?.name ?? ""} />
             <AvatarFallback className="rounded-lg">{fallbackName}</AvatarFallback>
           </Avatar>
           <div className="grid flex-1 text-left text-sm leading-tight">

@@ -3,12 +3,14 @@
 import { ModeToggle } from "@/core/theme/theme.selector";
 import { ZoomControl } from "@/shared/components/common/zoom.control";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { SystemStatusCard } from "./account.health-check";
 
 export function GeneralSettings() {
   return (
     <div className="space-y-6 p-1 w-full">
       <ThemeCard />
       <ZoomCard />
+      <SystemStatusCard />
     </div>
   );
 }

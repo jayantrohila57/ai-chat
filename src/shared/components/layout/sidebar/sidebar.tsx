@@ -1,6 +1,6 @@
-"use client";
-
-import { Badge } from "../../ui/badge";
+import { MessageCircle } from "lucide-react";
+import { ModeToggle } from "@/core/theme/theme.selector";
+import { Separator } from "../../ui/separator";
 import {
   Sidebar,
   SidebarContent,
@@ -9,43 +9,53 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
-  SidebarSeparator,
   SidebarTrigger,
-  useSidebar,
 } from "../../ui/sidebar";
+import { UserDropdown } from "../user/nav-user";
+import { NavRecentChats } from "./sidebar.nav-chats";
+import { NavSecondary } from "./sidebar.nav-secondary";
 import { NavMain } from "./sidebar.navigation";
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar() {
   return (
-    <Sidebar {...props}>
-      <SidebarHeader className="border-b h-16">
+    <Sidebar collapsible="icon" variant="inset">
+      <SidebarHeader className="bg-background rounded-t-xl shadow-sm ">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              asChild
-              className="p-2 h-12 group-data-[collapsible=icon]:p-2!  group-data-[collapsible=icon]:h-12! w-full group-data-[collapsible=icon]:w-12!"
+              size="lg"
+              className="data-[state=open]:bg-sidebar-accent group data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="flex items-center gap-2  w-full">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <SidebarTrigger />
-                </div>
-                <div className="flex flex-row items-center text-left text-sm w-full justify-between leading-tight">
-                  <span className="truncate text-xl font-semibold">{"AI Chat App v1"}</span>
-                  <Badge variant="outline" className="text-xs">
-                    Starter
-                  </Badge>
-                </div>
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg ">
+                <MessageCircle className="size-4 fill-current block group-data-[state=collapsed]:hidden" />
+                <SidebarTrigger asChild className="size-4 hidden group-data-[state=collapsed]:block" />
               </div>
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-medium">AI Chat App</span>
+                <span className="truncate text-xs text-muted-foreground font-mono">v1.0.0</span>
+              </div>
+              <SidebarTrigger asChild />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <Separator />
+      <SidebarContent className="h-auto bg-background shadow-sm">
         <NavMain />
+        <NavRecentChats />
+        <NavSecondary />
       </SidebarContent>
-      <SidebarFooter></SidebarFooter>
-      <SidebarRail />
+      <SidebarFooter className="bg-background rounded-b-xl shadow-sm ">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <ModeToggle />
+          </SidebarMenuItem>
+          <Separator className="my-2" />
+          <SidebarMenuItem>
+            <UserDropdown />
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }

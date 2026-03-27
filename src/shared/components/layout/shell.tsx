@@ -84,8 +84,7 @@ Shell.Footer = Footer;
 const MainVariants = cva("", {
   variants: {
     variant: {
-      default: "min-h-screen pt-16 border-r",
-      dashboard: "flex flex-1 h-screen overflow-hidden flex-col",
+      default: "flex-1 h-full w-full",
     },
   },
   defaultVariants: {
@@ -110,11 +109,7 @@ Shell.Main = Main;
 const SectionVariants = cva("", {
   variants: {
     variant: {
-      default: "",
-      full: "w-full h-full",
-      flexed: "my-12 flex container mx-auto px-0 max-w-9xl ",
-      dashboard: "flex-1 gap-0 bg-background",
-      center: "flex min-h-svh flex-col items-center justify-center p-2 md:p-10",
+      default: "py-12 flex container mx-auto px-0 max-w-5xl ",
     },
   },
   defaultVariants: {

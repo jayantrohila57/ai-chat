@@ -4,18 +4,15 @@ import { TRPCReactProvider } from "@/core/api/api.client";
 import { ThemeProvider } from "@/core/theme/theme.provider";
 import { Toaster } from "@/shared/components/ui/sonner";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
-import { className, viewport } from "@/shared/utils/methods/font";
-import { Figtree } from "next/font/google";
+
 import { cn } from "@/shared/utils/lib/utils";
-
-const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});
-
+import { className, viewport } from "@/shared/utils/methods/font";
 
 export { viewport };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" suppressHydrationWarning className={cn("font-sans", figtree.variable)}>
+    <html lang="en" suppressHydrationWarning className={cn(className)}>
       <body suppressHydrationWarning className={className}>
         <TRPCReactProvider>
           <ThemeProvider>

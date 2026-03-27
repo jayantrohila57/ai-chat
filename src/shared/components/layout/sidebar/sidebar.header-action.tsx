@@ -18,10 +18,10 @@ const ModeToggle = dynamic(async () => await import("@/core/theme/theme.selector
 function ActionsSkeleton() {
   return (
     <div className="flex flex-row">
-      <div className="h-16 w-16 border-x flex items-center justify-center">
+      <div className="h-12 w-12 border-x flex items-center justify-center">
         <Skeleton className="h-9 w-9 rounded-md" />
       </div>
-      <div className="h-16 w-16 border-r flex items-center justify-center">
+      <div className="h-12 w-12 border-r flex items-center justify-center">
         <Skeleton className="h-9 w-9 rounded-md" />
       </div>
     </div>
@@ -43,11 +43,11 @@ export function SidebarHeaderActions() {
   if (session) {
     return (
       <div className="flex flex-row">
-        <div className="h-16 w-16 border-x flex items-center justify-center">
+        <div className="h-12 w-12   flex items-center justify-center">
           <ModeToggle />
         </div>
-        <div className="h-16 w-16 border-r flex items-center justify-center">
-          <UserDropdown user={session.user} />
+        <div className="h-12 w-12  flex items-center justify-center">
+          <UserDropdown />
         </div>
       </div>
     );

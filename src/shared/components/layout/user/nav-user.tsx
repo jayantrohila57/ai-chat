@@ -1,11 +1,10 @@
 "use client";
 
-import type { User } from "better-auth";
-import { UserIcon } from "lucide-react";
-import Link from "next/link";
+import { ChevronsUpDown, Sparkles, UserIcon } from "lucide-react";
+
+import { useSession } from "@/core/auth/auth.client";
 import { SignOutDropdownMenuItem } from "@/module/auth/auth.sign-out-dropdown";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
-import { Button } from "@/shared/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,22 +14,32 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
-import { PATH } from "@/shared/config/routes";
+import { SidebarMenuButton } from "../../ui/sidebar";
 
-export function UserDropdown({ user }: { user: User }) {
-  const fallbackName = user?.name
+export function UserDropdown() {
+  const { data: session } = useSession();
+  const user = session?.user;
+  const fallbackName = session?.user?.name
     ?.split(" ")
     ?.map((name) => name?.[0])
     ?.join("");
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Avatar className="h-full w-full">
-            <AvatarImage src={user?.image ?? ""} alt={user?.name ?? ""} />
-            <AvatarFallback className="text-primary bg-background border-none">{fallbackName}</AvatarFallback>
+        <SidebarMenuButton
+          size="lg"
+          className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+        >
+          <Avatar className="h-8 w-8 rounded-lg ">
+            <AvatarImage className="rounded-lg" src={user?.image ?? ""} alt={user?.name ?? ""} />
+            <AvatarFallback className="rounded-lg">{fallbackName}</AvatarFallback>
           </Avatar>
-        </Button>
+          <div className="grid flex-1 text-left text-sm leading-tight">
+            <span className="truncate font-medium">{user?.name ?? ""}</span>
+            <span className="truncate text-xs">{user?.email ?? ""}</span>
+          </div>
+          <ChevronsUpDown className="ml-auto size-4" />
+        </SidebarMenuButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
@@ -51,16 +60,18 @@ export function UserDropdown({ user }: { user: User }) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuGroup>
-          <Link href={PATH.ACCOUNT.ROOT}>
-            <DropdownMenuItem>
-              <UserIcon />
-              {"Account"}
-            </DropdownMenuItem>
-          </Link>
+          <DropdownMenuItem className="cursor-pointer">
+            <Sparkles />
+            Upgrade to Pro
+          </DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer">
+            <UserIcon />
+            Account
+          </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <SignOutDropdownMenuItem />
+          <SignOutDropdownMenuItem className="cursor-pointer" />
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -1,17 +1,19 @@
-import Footer from "@/shared/components/layout/footer/footer";
-import Header from "@/shared/components/layout/header/header";
+import { HydrateClient } from "@/core/api/api.server";
 import Shell from "@/shared/components/layout/shell";
+import { AppSidebar } from "@/shared/components/layout/sidebar/sidebar";
+import { SidebarInset, SidebarProvider } from "@/shared/components/ui/sidebar";
 
-export default async function Layout({ children }: { children: React.ReactNode }) {
+export default async function Layout({ children }: LayoutProps<"/">) {
   return (
-    <Shell>
-      <Shell.Header>
-        <Header />
-      </Shell.Header>
-      <Shell.Main>{children}</Shell.Main>
-      <Shell.Footer>
-        <Footer />
-      </Shell.Footer>
-    </Shell>
+    <HydrateClient>
+      <Shell>
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset>
+            <Shell.Main>{children}</Shell.Main>
+          </SidebarInset>
+        </SidebarProvider>
+      </Shell>
+    </HydrateClient>
   );
 }

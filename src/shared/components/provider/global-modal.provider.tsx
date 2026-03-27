@@ -1,9 +1,9 @@
 "use client";
 
 import {
-  type LucideIcon,
   CreditCard,
   HelpCircle,
+  type LucideIcon,
   Monitor,
   Receipt,
   Settings,

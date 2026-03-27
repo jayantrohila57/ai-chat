@@ -1,13 +1,15 @@
-import { defaultShouldDehydrateQuery, QueryClient } from "@tanstack/react-query";
+import { defaultShouldDehydrateQuery, QueryClient, type QueryClientConfig } from "@tanstack/react-query";
 import SuperJSON from "superjson";
 
-export const createQueryClient = () =>
+export const createQueryClient = (config?: QueryClientConfig) =>
   new QueryClient({
     defaultOptions: {
       queries: {
-        // With SSR, we usually want to set some default staleTime
-        // above 0 to avoid refetching immediately on the client
         staleTime: 30 * 1000,
+        throwOnError: false,
+      },
+      mutations: {
+        throwOnError: false,
       },
       dehydrate: {
         serializeData: SuperJSON.serialize,
@@ -17,4 +19,5 @@ export const createQueryClient = () =>
         deserializeData: SuperJSON.deserialize,
       },
     },
+    ...config,
   });

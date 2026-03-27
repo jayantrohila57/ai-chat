@@ -2,9 +2,10 @@
 
 import { CalendarClock, CreditCard, Sparkles, Wallet } from "lucide-react";
 import Link from "next/link";
-import { apiClient } from "@/core/api/api.client";
+import { apiClient, getApiErrorMessage, getApiResponseData } from "@/core/api/api.client";
 import { useSession } from "@/core/auth/auth.client";
 import { formatBillingDate, formatCredits, formatSubscriptionStatusLabel } from "@/module/billing/billing.format";
+import { ApiErrorState } from "@/shared/components/feedback/api-error-state";
 import { useSettingsDialog } from "@/shared/components/provider/global-modal.provider";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -47,14 +48,17 @@ function SummaryCard({
 export function AccountSettings() {
   const { data: session } = useSession();
   const { openSettings } = useSettingsDialog();
-  const { data: viewer, isLoading: isViewerLoading } = apiClient.viewer.session.useQuery(undefined, {
+  const viewerQuery = apiClient.viewer.session.useQuery(undefined, {
     enabled: !!session?.user,
   });
-  const { data: usage, isLoading: isUsageLoading } = apiClient.billing.usage.useQuery(undefined, {
+  const usageQuery = apiClient.billing.usage.useQuery(undefined, {
     enabled: !!session?.user,
   });
 
-  if (isViewerLoading || isUsageLoading) {
+  const viewer = getApiResponseData(viewerQuery.data);
+  const usage = getApiResponseData(usageQuery.data);
+
+  if (viewerQuery.isLoading || usageQuery.isLoading) {
     return (
       <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -67,7 +71,27 @@ export function AccountSettings() {
     );
   }
 
-  if (!viewer?.authenticated || !viewer.user || !viewer.billing || !viewer.wallet) {
+  if (viewerQuery.isError) {
+    return (
+      <ApiErrorState
+        title="Account unavailable"
+        message={getApiErrorMessage(viewerQuery.error, "Failed to load account details.")}
+        onRetry={() => void viewerQuery.refetch()}
+      />
+    );
+  }
+
+  if (usageQuery.isError) {
+    return (
+      <ApiErrorState
+        title="Usage unavailable"
+        message={getApiErrorMessage(usageQuery.error, "Failed to load usage details.")}
+        onRetry={() => void usageQuery.refetch()}
+      />
+    );
+  }
+
+  if (!viewer?.authenticated || !viewer.user || !viewer.billing || !viewer.wallet || !usage) {
     return null;
   }
 
@@ -78,7 +102,6 @@ export function AccountSettings() {
 
   return (
     <div className="space-y-6">
-      <ProfileCard user={viewer.user} />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
           title="Current Plan"
@@ -94,7 +117,7 @@ export function AccountSettings() {
         />
         <SummaryCard
           title="Starter Credits"
-          value={formatCredits(usage?.breakdown.starterCreditsGranted ?? 0)}
+          value={formatCredits(usage.breakdown.starterCreditsGranted ?? 0)}
           description="Granted one time at first sign in"
           icon={Sparkles}
         />
@@ -139,9 +162,9 @@ export function AccountSettings() {
                 <CardDescription>Separate starter, subscription, and spent credits for clarity.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-muted-foreground">
-                <p>Subscription credits: {formatCredits(usage?.breakdown.subscriptionCreditsGranted ?? 0)}</p>
-                <p>Usage spent: {formatCredits(usage?.breakdown.usageCreditsSpent ?? 0)}</p>
-                <p>Refunds: {formatCredits(usage?.breakdown.refundCredits ?? 0)}</p>
+                <p>Subscription credits: {formatCredits(usage.breakdown.subscriptionCreditsGranted ?? 0)}</p>
+                <p>Usage spent: {formatCredits(usage.breakdown.usageCreditsSpent ?? 0)}</p>
+                <p>Refunds: {formatCredits(usage.breakdown.refundCredits ?? 0)}</p>
               </CardContent>
             </Card>
 
@@ -163,6 +186,8 @@ export function AccountSettings() {
           </div>
         </CardContent>
       </Card>
+
+      <ProfileCard user={viewer.user} />
     </div>
   );
 }

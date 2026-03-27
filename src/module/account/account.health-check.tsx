@@ -1,17 +1,18 @@
 "use client";
 
 import { AlertCircle, CheckCircle2 } from "lucide-react";
-import { apiClient } from "@/core/api/api.client";
-
+import { apiClient, getApiResponseData, getApiResponseMessage } from "@/core/api/api.client";
+import { ApiErrorState } from "@/shared/components/feedback/api-error-state";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
 
 export function SystemStatusCard() {
-  const { data, isLoading, error } = apiClient.system.health.useQuery(undefined, {
+  const query = apiClient.system.health.useQuery(undefined, {
     refetchInterval: 30000,
   });
 
-  const healthy = !!data && !error;
+  const data = getApiResponseData(query.data);
+  const healthy = Boolean(data) && !query.isError;
 
   return (
     <Card>
@@ -24,7 +25,7 @@ export function SystemStatusCard() {
         <div className="flex items-center justify-between">
           <span className="font-medium">API Status</span>
 
-          {isLoading ? (
+          {query.isLoading ? (
             <Badge variant="secondary">Checking...</Badge>
           ) : healthy ? (
             <Badge className="gap-1">
@@ -39,7 +40,15 @@ export function SystemStatusCard() {
           )}
         </div>
 
-        {data && (
+        {query.isError ? (
+          <ApiErrorState
+            title="Health check failed"
+            message={getApiResponseMessage(query.error, "Unable to reach the backend API.")}
+            onRetry={() => void query.refetch()}
+          />
+        ) : null}
+
+        {data ? (
           <>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Application</span>
@@ -56,7 +65,7 @@ export function SystemStatusCard() {
               <span>{new Date(data.timestamp).toLocaleString()}</span>
             </div>
           </>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );

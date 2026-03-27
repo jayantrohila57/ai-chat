@@ -3,7 +3,7 @@
 import { ChevronsUpDown, CreditCard, Sparkles, UserIcon } from "lucide-react";
 import Link from "next/link";
 
-import { apiClient } from "@/core/api/api.client";
+import { apiClient, getApiResponseData } from "@/core/api/api.client";
 import { useSession } from "@/core/auth/auth.client";
 import { SignOutDropdownMenuItem } from "@/module/auth/auth.sign-out-dropdown";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
@@ -23,9 +23,10 @@ import { SidebarMenuButton } from "../../ui/sidebar";
 export function UserDropdown() {
   const { openSettings } = useSettingsDialog();
   const { data: session } = useSession();
-  const { data: viewer } = apiClient.viewer.session.useQuery(undefined, {
+  const viewerQuery = apiClient.viewer.session.useQuery(undefined, {
     enabled: !!session?.user,
   });
+  const viewer = getApiResponseData(viewerQuery.data);
   const user = session?.user;
   const fallbackName = session?.user?.name
     ?.split(" ")
@@ -81,12 +82,10 @@ export function UserDropdown() {
             Subscription & Billing
           </DropdownMenuItem>
           <DropdownMenuItem className="cursor-pointer" asChild>
-            `r`n{" "}
             <Link href={PATH.ACCOUNT.ROOT}>
-              `r`n <UserIcon />
-              `r`n Account`r`n{" "}
+              <UserIcon />
+              Account
             </Link>
-            `r`n{" "}
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

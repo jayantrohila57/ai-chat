@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { createTRPCContext } from "@/core/api/api.methods";
 import { appRouter } from "@/core/api/api.routes";
 import { serverEnv } from "@/shared/config/env.server";
-import { debugLog } from "@/shared/utils/lib/logger.utils";
+import { debugError } from "@/shared/utils/lib/logger.utils";
 
 const createContext = async (req: NextRequest) => {
   return createTRPCContext({
@@ -20,7 +20,7 @@ const handler = (req: NextRequest) =>
     onError:
       serverEnv.NODE_ENV === "development"
         ? ({ path, error }) => {
-            debugLog(`❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`);
+            debugError("TRPC_ROUTE", `tRPC failed on ${path ?? "<no-path>"}: ${error.message}`, error);
           }
         : undefined,
   });

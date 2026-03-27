@@ -5,8 +5,15 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { apiClient, type RouterOutputs } from "@/core/api/api.client";
+import {
+  apiClient,
+  getApiErrorMessage,
+  getApiResponseData,
+  type RouterOutputs,
+  type UnwrapApiData,
+} from "@/core/api/api.client";
 import { useSession } from "@/core/auth/auth.client";
+import { ApiErrorState } from "@/shared/components/feedback/api-error-state";
 import Section from "@/shared/components/layout/section/section";
 import Shell from "@/shared/components/layout/shell";
 import { useSettingsDialog } from "@/shared/components/provider/global-modal.provider";
@@ -26,12 +33,12 @@ import {
   formatSubscriptionStatusLabel,
 } from "./billing.format";
 
-type BillingSummary = RouterOutputs["billing"]["summary"];
-type BillingUsage = RouterOutputs["billing"]["usage"];
-type BillingOrder = RouterOutputs["billing"]["orders"][number];
-type BillingPayment = RouterOutputs["billing"]["payments"][number];
-type BillingPlan = RouterOutputs["billing"]["plans"][number];
-type CheckoutPayload = RouterOutputs["billing"]["createCheckout"];
+type BillingSummary = UnwrapApiData<RouterOutputs["billing"]["summary"]>;
+type BillingUsage = UnwrapApiData<RouterOutputs["billing"]["usage"]>;
+type BillingOrder = UnwrapApiData<RouterOutputs["billing"]["orders"]>[number];
+type BillingPayment = UnwrapApiData<RouterOutputs["billing"]["payments"]>[number];
+type BillingPlan = UnwrapApiData<RouterOutputs["billing"]["plans"]>[number];
+type CheckoutPayload = UnwrapApiData<RouterOutputs["billing"]["createCheckout"]>;
 
 type RazorpayCheckoutResult = {
   razorpay_payment_id?: string;
@@ -418,15 +425,20 @@ export function BillingSubscriptionSettings() {
   const utils = apiClient.useUtils();
   const { data: session } = useSession();
   const mounted = useHasMounted();
-  const { data: summary, isLoading: isSummaryLoading } = apiClient.billing.summary.useQuery(undefined, {
+  const summaryQuery = apiClient.billing.summary.useQuery(undefined, {
     enabled: mounted && !!session,
   });
-  const { data: plans, isLoading: isPlansLoading } = apiClient.billing.plans.useQuery(undefined, {
+  const plansQuery = apiClient.billing.plans.useQuery(undefined, {
     enabled: mounted && !!session,
   });
 
   const createCheckoutMutation = apiClient.billing.createCheckout.useMutation({
-    onSuccess: async (payload) => {
+    onSuccess: async (response) => {
+      const payload = getApiResponseData(response);
+      if (!payload) {
+        toast.error(response.message || "Unable to start Razorpay checkout");
+        return;
+      }
       try {
         await openCheckoutFlow({
           payload,
@@ -441,7 +453,7 @@ export function BillingSubscriptionSettings() {
       }
     },
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(getApiErrorMessage(error));
     },
   });
 
@@ -457,12 +469,35 @@ export function BillingSubscriptionSettings() {
       router.refresh();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(getApiErrorMessage(error));
     },
   });
 
-  if (!mounted || isSummaryLoading || isPlansLoading) {
+  const summary = getApiResponseData(summaryQuery.data);
+  const plans = getApiResponseData(plansQuery.data);
+
+  if (!mounted || summaryQuery.isLoading || plansQuery.isLoading) {
     return <BillingSurfaceSkeleton />;
+  }
+
+  if (summaryQuery.isError) {
+    return (
+      <ApiErrorState
+        title="Subscription unavailable"
+        message={getApiErrorMessage(summaryQuery.error, "Failed to load subscription details.")}
+        onRetry={() => void summaryQuery.refetch()}
+      />
+    );
+  }
+
+  if (plansQuery.isError) {
+    return (
+      <ApiErrorState
+        title="Plans unavailable"
+        message={getApiErrorMessage(plansQuery.error, "Failed to load plans.")}
+        onRetry={() => void plansQuery.refetch()}
+      />
+    );
   }
 
   if (!session || !summary || !plans) {
@@ -560,12 +595,24 @@ export function BillingSubscriptionSettings() {
 export function BillingUsageSettings() {
   const { data: session } = useSession();
   const mounted = useHasMounted();
-  const { data: usage, isLoading } = apiClient.billing.usage.useQuery(undefined, {
+  const usageQuery = apiClient.billing.usage.useQuery(undefined, {
     enabled: mounted && !!session,
   });
 
-  if (!mounted || isLoading) {
+  const usage = getApiResponseData(usageQuery.data);
+
+  if (!mounted || usageQuery.isLoading) {
     return <BillingSurfaceSkeleton />;
+  }
+
+  if (usageQuery.isError) {
+    return (
+      <ApiErrorState
+        title="Usage unavailable"
+        message={getApiErrorMessage(usageQuery.error, "Failed to load usage details.")}
+        onRetry={() => void usageQuery.refetch()}
+      />
+    );
   }
 
   if (!session || !usage) {
@@ -638,12 +685,24 @@ export function BillingUsageSettings() {
 export function BillingPaymentsSettings() {
   const { data: session } = useSession();
   const mounted = useHasMounted();
-  const { data: payments, isLoading } = apiClient.billing.payments.useQuery(undefined, {
+  const paymentsQuery = apiClient.billing.payments.useQuery(undefined, {
     enabled: mounted && !!session,
   });
 
-  if (!mounted || isLoading) {
+  const payments = getApiResponseData(paymentsQuery.data);
+
+  if (!mounted || paymentsQuery.isLoading) {
     return <BillingSurfaceSkeleton />;
+  }
+
+  if (paymentsQuery.isError) {
+    return (
+      <ApiErrorState
+        title="Payments unavailable"
+        message={getApiErrorMessage(paymentsQuery.error, "Failed to load payment history.")}
+        onRetry={() => void paymentsQuery.refetch()}
+      />
+    );
   }
 
   if (!session || !payments) {
@@ -666,12 +725,24 @@ export function BillingPaymentsSettings() {
 export function BillingOrdersSettings() {
   const { data: session } = useSession();
   const mounted = useHasMounted();
-  const { data: orders, isLoading } = apiClient.billing.orders.useQuery(undefined, {
+  const ordersQuery = apiClient.billing.orders.useQuery(undefined, {
     enabled: mounted && !!session,
   });
 
-  if (!mounted || isLoading) {
+  const orders = getApiResponseData(ordersQuery.data);
+
+  if (!mounted || ordersQuery.isLoading) {
     return <BillingSurfaceSkeleton />;
+  }
+
+  if (ordersQuery.isError) {
+    return (
+      <ApiErrorState
+        title="Orders unavailable"
+        message={getApiErrorMessage(ordersQuery.error, "Failed to load order history.")}
+        onRetry={() => void ordersQuery.refetch()}
+      />
+    );
   }
 
   if (!session || !orders) {
@@ -696,13 +767,18 @@ export function PricingPageContent() {
   const { openSettings } = useSettingsDialog();
   const { data: session } = useSession();
   const mounted = useHasMounted();
-  const { data: plans, isLoading } = apiClient.billing.plans.useQuery();
-  const { data: summary } = apiClient.billing.summary.useQuery(undefined, {
+  const plansQuery = apiClient.billing.plans.useQuery();
+  const summaryQuery = apiClient.billing.summary.useQuery(undefined, {
     enabled: mounted && !!session,
   });
 
   const createCheckoutMutation = apiClient.billing.createCheckout.useMutation({
-    onSuccess: async (payload) => {
+    onSuccess: async (response) => {
+      const payload = getApiResponseData(response);
+      if (!payload) {
+        toast.error(response.message || "Unable to start Razorpay checkout");
+        return;
+      }
       try {
         await openCheckoutFlow({
           payload,
@@ -716,10 +792,12 @@ export function PricingPageContent() {
       }
     },
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(getApiErrorMessage(error));
     },
   });
 
+  const plans = getApiResponseData(plansQuery.data);
+  const summary = getApiResponseData(summaryQuery.data);
   const currentPlanCode = summary?.currentPlan?.code ?? "free";
   const action = !mounted
     ? "Checking your account state..."
@@ -740,7 +818,19 @@ export function PricingPageContent() {
           action={!summary?.hasPaidPlan ? action : undefined}
           actionLink={!summary?.hasPaidPlan ? actionLink : undefined}
         >
-          {summary?.hasPaidPlan ? (
+          {summaryQuery.isError ? (
+            <ApiErrorState
+              title="Subscription unavailable"
+              message={getApiErrorMessage(summaryQuery.error, "Failed to load your billing summary.")}
+              onRetry={() => void summaryQuery.refetch()}
+            />
+          ) : plansQuery.isError ? (
+            <ApiErrorState
+              title="Plans unavailable"
+              message={getApiErrorMessage(plansQuery.error, "Failed to load pricing plans.")}
+              onRetry={() => void plansQuery.refetch()}
+            />
+          ) : summary?.hasPaidPlan ? (
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle>Current subscription</CardTitle>
@@ -766,7 +856,7 @@ export function PricingPageContent() {
             </Card>
           ) : null}
 
-          {isLoading || !plans ? (
+          {plansQuery.isLoading || !plans ? (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 3 }).map((_, index) => (
                 <Skeleton key={index} className="h-[420px] rounded-2xl" />
@@ -803,7 +893,12 @@ export function PricingSuccessPageContent() {
   const planName = searchParams.get("planName") ?? "your plan";
 
   const confirmCheckoutMutation = apiClient.billing.confirmCheckout.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (response) => {
+      const confirmed = getApiResponseData(response);
+      if (!confirmed) {
+        toast.error(response.message || "Verification failed");
+        return;
+      }
       await Promise.all([
         utils.billing.summary.invalidate(),
         utils.billing.usage.invalidate(),
@@ -815,9 +910,10 @@ export function PricingSuccessPageContent() {
     },
   });
 
-  const { data: summary } = apiClient.billing.summary.useQuery(undefined, {
+  const summaryQuery = apiClient.billing.summary.useQuery(undefined, {
     enabled: mounted && !!session && confirmCheckoutMutation.isSuccess,
   });
+  const summary = getApiResponseData(summaryQuery.data);
 
   useEffect(() => {
     if (!mounted || !session || !providerSubscriptionId || attemptedRef.current) {
@@ -890,7 +986,9 @@ export function PricingSuccessPageContent() {
             <Card>
               <CardHeader>
                 <CardTitle>Verification failed</CardTitle>
-                <CardDescription>{confirmCheckoutMutation.error.message}</CardDescription>
+                <CardDescription>
+                  {getApiErrorMessage(confirmCheckoutMutation.error, "Verification failed.")}
+                </CardDescription>
               </CardHeader>
               <CardContent className="flex gap-3">
                 <Button

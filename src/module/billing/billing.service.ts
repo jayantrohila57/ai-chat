@@ -606,7 +606,8 @@ export async function createCheckoutForPlan(input: {
   if (currentSubscription && ["active", "trialing", "past_due"].includes(currentSubscription.status)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "You already have an active paid subscription. Manage the current plan instead of starting a new checkout.",
+      message:
+        "You already have an active paid subscription. Manage the current plan instead of starting a new checkout.",
     });
   }
 

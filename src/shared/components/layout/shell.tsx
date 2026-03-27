@@ -106,10 +106,10 @@ Main.displayName = "Main";
 
 Shell.Main = Main;
 
-const SectionVariants = cva("", {
+const SectionVariants = cva("relative", {
   variants: {
     variant: {
-      default: "py-12 flex container mx-auto px-0 max-w-5xl ",
+      default: "flex container mx-auto px-0 max-w-5xl ",
     },
   },
   defaultVariants: {

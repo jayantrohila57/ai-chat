@@ -77,12 +77,12 @@ ${error.stack ? `Stack: ${error.stack}` : ""}`;
                   </div>
                 </div>
 
-                <AlertDescription className="mt-2 rounded-md bg-destructive/10 p-2 font-mono text-xs">
+                <AlertDescription className="mt-2 rounded-md bg-destructive/10 p-2  font-mono text-xs">
                   {error.message || "Unknown error occurred."}
                 </AlertDescription>
 
                 <div className="mt-4 rounded-md bg-muted p-4">
-                  <pre className="text-[10px] leading-relaxed text-muted-foreground">
+                  <pre className="text-[10px] overflow-auto leading-relaxed text-muted-foreground">
                     {error.digest ? `Digest: ${error.digest}\n\n` : ""}
                     {error.name ? `Name: ${error.name}\n\n` : ""}
                     {error.stack ? `Stack:\n${error.stack}` : "No stack trace available."}

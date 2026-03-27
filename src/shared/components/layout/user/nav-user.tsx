@@ -14,9 +14,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
+import { useSettingsDialog } from "../../provider/global-modal.provider";
 import { SidebarMenuButton } from "../../ui/sidebar";
 
 export function UserDropdown() {
+  const { openSettings } = useSettingsDialog();
   const { data: session } = useSession();
   const user = session?.user;
   const fallbackName = session?.user?.name
@@ -64,7 +66,7 @@ export function UserDropdown() {
             <Sparkles />
             Upgrade to Pro
           </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer">
+          <DropdownMenuItem className="cursor-pointer" onClick={() => openSettings("account")}>
             <UserIcon />
             Account
           </DropdownMenuItem>

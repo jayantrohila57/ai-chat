@@ -12,6 +12,7 @@ export const {
   signOut,
   twoFactor,
   useSession,
+  listSessions,
   getSession,
   updateUser,
   changeEmail,

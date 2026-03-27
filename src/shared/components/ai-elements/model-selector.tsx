@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { ComponentProps, ReactNode } from "react";
 import {
   Command,
@@ -138,7 +139,7 @@ export type ModelSelectorLogoProps = Omit<ComponentProps<"img">, "src" | "alt"> 
 };
 
 export const ModelSelectorLogo = ({ provider, className, ...props }: ModelSelectorLogoProps) => (
-  <img
+  <Image
     {...props}
     alt={`${provider} logo`}
     className={cn("size-3 dark:invert", className)}

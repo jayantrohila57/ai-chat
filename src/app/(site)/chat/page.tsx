@@ -1,6 +1,6 @@
 "use client";
 
-import type { ToolUIPart } from "ai";
+import type { FileUIPart, ToolUIPart } from "ai";
 import { CheckIcon, GlobeIcon } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useCallback, useMemo, useState } from "react";
@@ -337,7 +337,7 @@ const AttachmentItem = ({
   attachment,
   onRemove,
 }: {
-  attachment: { id: string; name: string; type: string; url: string };
+  attachment: FileUIPart & { id: string };
   onRemove: (id: string) => void;
 }) => {
   const handleRemove = useCallback(() => {

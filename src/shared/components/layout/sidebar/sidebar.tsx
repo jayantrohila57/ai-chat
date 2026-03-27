@@ -4,6 +4,7 @@ import { LogIn, MessageCircle } from "lucide-react";
 import { getClientSession, useSession } from "@/core/auth/auth.client";
 import { getServerSession } from "@/core/auth/auth.server";
 import { ModeToggle } from "@/core/theme/theme.selector";
+import { useSettingsDialog } from "../../provider/global-modal.provider";
 import { Separator } from "../../ui/separator";
 import {
   Sidebar,
@@ -53,9 +54,6 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter className="bg-background rounded-b-xl shadow-sm ">
         <SidebarMenu>
-          <SidebarMenuItem>
-            <ModeToggle />
-          </SidebarMenuItem>
           <Separator className="my-2" />
           <SidebarMenuItem>
             {isAuthenticated ? (

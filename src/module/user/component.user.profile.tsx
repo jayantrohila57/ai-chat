@@ -13,10 +13,7 @@ interface UserProfileProps {
     emailVerified?: boolean;
     image?: string | null;
     createdAt?: Date;
-    twoFactorEnabled?: boolean;
     role?: string;
-    banned?: boolean;
-    banReason?: string | null;
   };
 }
 
@@ -27,8 +24,6 @@ export function ProfileCard({ user }: UserProfileProps) {
   const created = user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "Unknown date";
   const verified = user?.emailVerified;
   const role = user?.role ?? "user";
-  const banned = user?.banned ?? false;
-  const reason = user?.banReason ?? "No reason provided";
 
   return (
     <Card>
@@ -59,47 +54,11 @@ export function ProfileCard({ user }: UserProfileProps) {
         <Separator />
 
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">2FA</span>
-          <Badge variant={user?.twoFactorEnabled ? "default" : "secondary"}>
-            {user?.twoFactorEnabled ? "Enabled" : "Disabled"}
-          </Badge>
-        </div>
-        <Separator />
-
-        <div className="flex items-center justify-between">
           <span className="text-muted-foreground flex items-center gap-1">
             <Calendar size={14} /> Joined
           </span>
           <span>{created}</span>
         </div>
-        <Separator />
-
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground flex items-center gap-1">
-            <Calendar size={14} /> Status
-          </span>
-          <div className="flex justify-start">
-            {banned ? (
-              <Badge variant="destructive" className="flex items-center gap-1">
-                <Shield size={14} /> Access Restricted
-              </Badge>
-            ) : (
-              <Badge variant="default" className="flex items-center gap-1">
-                <UserIcon size={14} /> Active User
-              </Badge>
-            )}
-          </div>
-        </div>
-        <Separator />
-        {banned && (
-          <div className="border-destructive/40 bg-destructive/10 flex items-start gap-2 rounded-md border p-3">
-            <Ban size={16} className="text-destructive shrink-0" />
-            <div>
-              <p className="text-destructive text-sm font-medium">Banned</p>
-              <p className="text-muted-foreground text-xs">{reason}</p>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

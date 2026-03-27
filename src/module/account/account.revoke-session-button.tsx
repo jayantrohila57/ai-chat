@@ -35,7 +35,13 @@ export function RevokeSessionButton() {
   };
 
   return (
-    <Button variant="outline" size="sm" onClick={handleRevokeOtherSessions} disabled={isPending}>
+    <Button
+      variant="outline"
+      className="cursor-pointer"
+      size="sm"
+      onClick={handleRevokeOtherSessions}
+      disabled={isPending}
+    >
       {isPending ? (
         <>
           <Loader className="mr-2 h-4 w-4 animate-spin" />

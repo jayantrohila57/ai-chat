@@ -5,8 +5,8 @@ import { Shell } from "@/shared/components/layout/shell";
 export default async function Loading() {
   return (
     <Shell>
-      <Shell.Main variant="dashboard">
-        <Shell.Section variant="dashboard">
+      <Shell.Main>
+        <Shell.Section>
           <DashboardSection title={"Loading"} description={"Loading... Please wait."}>
             <div className="flex h-[calc(100vh-10.2rem)] items-center justify-center">
               <Loader className="animate-spin" />

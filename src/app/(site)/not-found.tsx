@@ -8,8 +8,8 @@ import { PATH } from "@/shared/config/routes";
 export default function NotFound() {
   return (
     <Shell>
-      <Shell.Main variant="dashboard">
-        <Shell.Section variant="dashboard">
+      <Shell.Main>
+        <Shell.Section>
           <DashboardSection
             title={"Page Not Found"}
             description={"The page you’re looking for doesn’t exist or has been moved."}
@@ -25,7 +25,7 @@ export default function NotFound() {
                     <Link href={PATH.ROOT as Route}>Go to homepage</Link>
                   </Button>
                   <Button asChild variant="outline">
-                    <Link href={PATH.STUDIO.ROOT as Route}>Back to Studio</Link>
+                    <Link href={PATH.CHAT.ROOT as Route}>Back to Studio</Link>
                   </Button>
                 </div>
               </div>

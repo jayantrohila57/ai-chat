@@ -1,7 +1,7 @@
 "use client";
 
 import { Github, Loader } from "lucide-react";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { signIn } from "@/core/auth/auth.client";
@@ -12,7 +12,7 @@ import { debugError } from "@/shared/utils/lib/logger.utils";
 
 export function GitHubSignIn() {
   const [isLoading, startTransition] = useTransition();
-  const router = useRouter();
+  // const router = useRouter();
 
   const handleSignIn = () => {
     startTransition(async () => {
@@ -20,7 +20,7 @@ export function GitHubSignIn() {
       try {
         await signIn.social({
           provider: "github",
-          callbackURL: PATH.STUDIO.ROOT,
+          callbackURL: PATH.CHAT.ROOT,
         });
         toast.success("Signed in successfully", { id: toastId });
       } catch (error) {
@@ -28,7 +28,7 @@ export function GitHubSignIn() {
         toast.error("Something went wrong", { id: toastId });
       } finally {
         toast.dismiss(toastId);
-        router.push(PATH.STUDIO.ROOT);
+        // router.push(PATH.CHAT.ROOT);
       }
     });
   };

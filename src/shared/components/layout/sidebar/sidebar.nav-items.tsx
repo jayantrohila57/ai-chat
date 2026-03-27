@@ -32,7 +32,7 @@ export function useSidebarSections(): { sections: NavSection[]; isPending: boole
         section: [
           {
             title: "Overview",
-            url: PATH.STUDIO.ROOT,
+            url: PATH.CHAT.ROOT,
             icon: LayoutDashboard,
           },
         ],
@@ -42,7 +42,7 @@ export function useSidebarSections(): { sections: NavSection[]; isPending: boole
         section: [
           {
             title: "Starter State",
-            url: PATH.STUDIO.ROOT,
+            url: PATH.CHAT.ROOT,
             icon: Sparkles,
           },
         ],

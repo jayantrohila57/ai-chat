@@ -11,7 +11,7 @@ const GitHubSignIn = dynamic(() => import("./auth.github-sign-in").then((mod) =>
 export function AuthProviders() {
   return (
     <Suspense>
-      <GitHubSignIn  />
+      <GitHubSignIn />
     </Suspense>
   );
 }

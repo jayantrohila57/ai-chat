@@ -28,7 +28,7 @@ export function SidebarNavSkeleton() {
               const width = SKELETON_WIDTHS[getFlatIndex(sectionIndex, itemIndex) % SKELETON_WIDTHS.length];
               return (
                 <SidebarMenuItem key={itemIndex}>
-                  <SidebarMenuSkeleton showIcon width={width} />
+                  <SidebarMenuSkeleton showIcon />
                 </SidebarMenuItem>
               );
             })}

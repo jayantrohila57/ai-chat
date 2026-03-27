@@ -37,8 +37,8 @@ ${error.stack ? `Stack: ${error.stack}` : ""}`;
 
   return (
     <Shell>
-      <Shell.Main variant="dashboard">
-        <Shell.Section variant="dashboard">
+      <Shell.Main>
+        <Shell.Section>
           <DashboardSection
             title="Something went wrong"
             description="An unexpected error occurred in the Studio. You can try to reset the current view or report the issue."

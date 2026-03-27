@@ -30,7 +30,7 @@ export function HeaderActions() {
   const authSlot = !mounted ? (
     <AuthSlotSkeleton />
   ) : session?.user ? (
-    <UserDropdown user={session.user} />
+    <UserDropdown />
   ) : (
     <Link href={PATH.AUTH.SIGN_UP}>
       <Button size="sm" variant="ghost">

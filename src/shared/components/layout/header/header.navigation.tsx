@@ -33,13 +33,7 @@ export function NavigationMenuComponent() {
 
         <NavigationMenuItem className="hidden md:flex">
           <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link href={PATH.STUDIO.ROOT}>Studio</Link>
-          </NavigationMenuLink>
-        </NavigationMenuItem>
-
-        <NavigationMenuItem className="hidden md:flex">
-          <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link href={PATH.AUTH.ROOT}>Auth</Link>
+            <Link href={PATH.CHAT.ROOT}>Chat</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenuList>

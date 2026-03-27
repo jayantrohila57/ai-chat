@@ -6,7 +6,7 @@ import { APP_ROLE, normalizeRole } from "@/core/auth/auth.roles";
 export async function proxy(request: NextRequest) {
   const { pathname } = new URL(request.url);
 
-  if (pathname.startsWith("/studio")) {
+  if (pathname.startsWith("/chat")) {
     const session = await auth.api.getSession({ headers: request.headers });
     const role = normalizeRole(session?.user?.role);
 
@@ -21,5 +21,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const proxyConfig = {
-  matcher: ["/studio/:path*"],
+  matcher: ["/chat/:path*"],
 };

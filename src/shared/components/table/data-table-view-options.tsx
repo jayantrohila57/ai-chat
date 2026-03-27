@@ -1,6 +1,5 @@
 "use client";
 
-import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import { Settings2 } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
@@ -10,6 +9,7 @@ import {
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
 import { useDataTableContext } from "./data-table-context";
 

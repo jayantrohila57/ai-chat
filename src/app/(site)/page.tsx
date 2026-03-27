@@ -54,9 +54,7 @@ export default async function Home({}: PageProps<"/">) {
         <section className="flex min-h-[calc(100svh-8rem)] flex-col justify-center items-center gap-8">
           <div className="grid gap-4 lg:grid-cols-[1.4fr_0.9fr]">
             <div className="space-y-4">
-              <Badge variant="outline">
-                Intelligent AI Workspace
-              </Badge>
+              <Badge variant="outline">Intelligent AI Workspace</Badge>
               <div className="space-y-4">
                 <h1 className="max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">
                   Your personal AI workspace for conversations and ideas.
@@ -72,7 +70,7 @@ export default async function Home({}: PageProps<"/">) {
               <div className="flex flex-wrap gap-3">
                 {isAuthenticated ? (
                   <Button asChild size="lg">
-                    <Link href={PATH.AUTH.SIGN_UP}>
+                    <Link href={PATH.CHAT.ROOT}>
                       Start chatting
                       <ArrowRight className="ml-2 size-4" />
                     </Link>
@@ -82,7 +80,7 @@ export default async function Home({}: PageProps<"/">) {
                 )}
 
                 <Button asChild variant="outline" size="lg">
-                  <Link href={PATH.STUDIO.ROOT}>Upgrade to Pro</Link>
+                  <Link href={PATH.CHAT.ROOT}>Upgrade to Pro</Link>
                 </Button>
               </div>
             </div>

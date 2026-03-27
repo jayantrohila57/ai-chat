@@ -28,7 +28,7 @@ export default async function AccountPage() {
     >
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-8">
         <div className="lg:col-span-8">
-          <ProfileCard user={data.user} />
+          <ProfileCard />
         </div>
         <div className="lg:col-span-8">
           <Card>

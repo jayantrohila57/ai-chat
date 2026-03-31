@@ -28,7 +28,7 @@ export function SessionManagement() {
   const currentSession = sessions.find((s) => s.token === currentSessionToken);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 p-1 w-full">
       <div className="flex flex-col gap-2 p-1">
         <h3 className="text-lg font-medium">Current Session</h3>
         {currentSession && <SessionCard session={currentSession} isCurrentSession />}

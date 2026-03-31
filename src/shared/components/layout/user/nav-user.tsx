@@ -81,11 +81,9 @@ export function UserDropdown() {
             <CreditCard />
             Subscription & Billing
           </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer" asChild>
-            <Link href={PATH.ACCOUNT.ROOT}>
-              <UserIcon />
-              Account
-            </Link>
+          <DropdownMenuItem className="cursor-pointer" onClick={() => openSettings("account")}>
+            <UserIcon />
+            Account
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

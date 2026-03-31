@@ -203,13 +203,13 @@ export function GlobalModalProvider({ children }: { children: ReactNode }) {
             </Sidebar>
 
             <SidebarInset>
-              <Card className="h-full w-full pr-2">
+              <Card className="h-full w-full pr-2 bg-sidebar">
                 <CardHeader className="h-16">
                   <CardTitle className="text-3xl font-semibold">{activeItem?.name}</CardTitle>
                   <CardDescription className="text-sm text-muted-foreground">{activeItem?.description}</CardDescription>
                 </CardHeader>
-                <CardContent className="bg-background h-[calc(100vh-14.5rem)] w-full overflow-hidden rounded-2xl p-0">
-                  <ScrollArea className="h-[calc(100vh-14.6rem)] w-full overflow-y-auto rounded-2xl p-4">
+                <CardContent className="dark:bg-background bg-secondary h-[calc(100vh-14.5rem)] w-full overflow-hidden rounded-2xl">
+                  <ScrollArea className="h-[calc(100vh-14.6rem)] w-full overflow-y-auto rounded-2xl p-1 py-4">
                     {activeItem ? renderSettingsContent(activeItem.id, isSessionValid) : null}
                   </ScrollArea>
                 </CardContent>

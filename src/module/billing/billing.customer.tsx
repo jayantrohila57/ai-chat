@@ -517,7 +517,7 @@ export function BillingSubscriptionSettings() {
   const activeSubscription = summary.activeSubscription ?? null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-1 w-full">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
           title="Current Plan"
@@ -620,7 +620,7 @@ export function BillingUsageSettings() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-1 w-full">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
           title="Starter Credits"
@@ -710,15 +710,17 @@ export function BillingPaymentsSettings() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Payment history</CardTitle>
-        <CardDescription>Normalized provider payment events for your subscription lifecycle.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <PaymentsTable payments={payments} />
-      </CardContent>
-    </Card>
+    <div className="space-y-6 p-1 w-full">
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment history</CardTitle>
+          <CardDescription>Normalized provider payment events for your subscription lifecycle.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PaymentsTable payments={payments} />
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -750,15 +752,19 @@ export function BillingOrdersSettings() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Order history</CardTitle>
-        <CardDescription>Subscription intent and provider lifecycle records for the current customer.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <OrdersTable orders={orders} />
-      </CardContent>
-    </Card>
+    <div className="space-y-6 p-1 w-full">
+      <Card>
+        <CardHeader>
+          <CardTitle>Order history</CardTitle>
+          <CardDescription>
+            Subscription intent and provider lifecycle records for the current customer.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <OrdersTable orders={orders} />
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 
 export function HelpSettings() {
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 p-1 w-full">
       <SupportCard />
       <CommunityCard />
     </div>

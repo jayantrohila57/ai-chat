@@ -11,16 +11,22 @@ export const metadata = {
   description: "AI Chat App v1 internal starter workspace.",
 };
 
-export default async function StudioPage() {
+export default async function StudioPage({
+  params,
+}: {
+  params: Promise<{ threadId: string }>;
+}) {
+  const { threadId } = await params;
+
   const { session, user } = await getServerSession();
 
   if (!session) {
     return redirect(PATH.ROOT);
   }
 
-  if (normalizeRole(user?.role) === APP_ROLE.CUSTOMER) {
-    forbidden();
-  }
+  // if (normalizeRole(user?.role) === APP_ROLE.CUSTOMER) {
+  //   forbidden();
+  // }
 
   const cards = [
     {

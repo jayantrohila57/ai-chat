@@ -60,7 +60,7 @@ export function AccountSettings() {
 
   if (viewerQuery.isLoading || usageQuery.isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 p-1 w-full">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, index) => (
             <Skeleton key={index} className="h-36 rounded-2xl" />
@@ -101,7 +101,8 @@ export function AccountSettings() {
     : "You're currently on the free customer experience.";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-1 w-full">
+      <ProfileCard user={viewer.user} />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
           title="Current Plan"
@@ -128,7 +129,6 @@ export function AccountSettings() {
           icon={CalendarClock}
         />
       </div>
-
       <Card>
         <CardHeader>
           <CardTitle>Customer billing summary</CardTitle>
@@ -186,8 +186,6 @@ export function AccountSettings() {
           </div>
         </CardContent>
       </Card>
-
-      <ProfileCard user={viewer.user} />
     </div>
   );
 }

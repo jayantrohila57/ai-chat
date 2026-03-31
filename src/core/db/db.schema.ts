@@ -127,6 +127,9 @@ export const chatThread = pgTable(
     title: text("title").notNull(),
     titleSource: text("title_source").$type<"manual" | "auto">().default("auto").notNull(),
     model: text("model"),
+    summary: text("summary"),
+    summaryVersion: integer("summary_version").notNull().default(0),
+    summaryUpdatedAt: timestamp("summary_updated_at", { withTimezone: true }),
     lastMessageAt: timestamp("last_message_at", { withTimezone: true }).defaultNow().notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     ...timestamps,
@@ -154,6 +157,9 @@ export const chatMessage = pgTable(
     content: text("content").notNull().default(""),
     model: text("model"),
     provider: text("provider"),
+    reasoning: text("reasoning"),
+    reasoningTokens: integer("reasoning_tokens").notNull().default(0),
+    summaryVersionUsed: integer("summary_version_used").notNull().default(0),
     promptTokens: integer("prompt_tokens").notNull().default(0),
     completionTokens: integer("completion_tokens").notNull().default(0),
     totalTokens: integer("total_tokens").notNull().default(0),
@@ -169,6 +175,30 @@ export const chatMessage = pgTable(
       table.threadId,
       table.clientMessageId,
     ),
+  }),
+);
+
+export const aiModel = pgTable(
+  "ai_model",
+  {
+    id: text("id").primaryKey(),
+    provider: text("provider").notNull(),
+    providerModel: text("provider_model").notNull(),
+    displayName: text("display_name").notNull(),
+    description: text("description"),
+    planCode: text("plan_code").notNull().default("free"),
+    enabled: boolean("enabled").notNull().default(true),
+    isDefault: boolean("is_default").notNull().default(false),
+    supportsReasoning: boolean("supports_reasoning").notNull().default(false),
+    creditMultiplierBps: integer("credit_multiplier_bps").notNull().default(10000),
+    contextWindow: integer("context_window"),
+    maxOutputTokens: integer("max_output_tokens"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    ...timestamps,
+  },
+  (table) => ({
+    providerModelUniqueIdx: uniqueIndex("ai_model_provider_model_unique_idx").on(table.provider, table.providerModel),
+    planSortIdx: index("ai_model_plan_sort_idx").on(table.planCode, table.sortOrder),
   }),
 );
 
@@ -494,6 +524,8 @@ export const usageEventRelations = relations(usageEvent, ({ one }) => ({
     references: [chatMessage.id],
   }),
 }));
+
+export const aiModelRelations = relations(aiModel, () => ({}));
 
 export const subscriptionPlanRelations = relations(subscriptionPlan, ({ many }) => ({
   subscriptions: many(subscription),

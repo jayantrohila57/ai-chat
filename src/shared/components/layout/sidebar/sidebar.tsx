@@ -1,10 +1,8 @@
 "use client";
 
 import { LogIn, MessageCircle } from "lucide-react";
-import { getClientSession, useSession } from "@/core/auth/auth.client";
-import { getServerSession } from "@/core/auth/auth.server";
-import { ModeToggle } from "@/core/theme/theme.selector";
-import { useSettingsDialog } from "../../provider/global-modal.provider";
+import Link from "next/link";
+import { useSession } from "@/core/auth/auth.client";
 import { Separator } from "../../ui/separator";
 import {
   Sidebar,
@@ -17,13 +15,14 @@ import {
   SidebarTrigger,
 } from "../../ui/sidebar";
 import { UserDropdown } from "../user/nav-user";
-import { NavRecentChats } from "./sidebar.nav-chats";
+import { NavArchivedChats, NavRecentChats } from "./sidebar.nav-chats";
 import { NavSecondary } from "./sidebar.nav-secondary";
 import { NavMain } from "./sidebar.navigation";
 
 export function AppSidebar() {
   const { data: session } = useSession();
   const isAuthenticated = !!session?.user;
+
   return (
     <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader className="bg-background rounded-t-xl shadow-sm ">
@@ -38,7 +37,9 @@ export function AppSidebar() {
                 <SidebarTrigger asChild className="size-4 hidden group-data-[state=collapsed]:block" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">AI Chat App</span>
+                <Link href="/" className="truncate font-medium hover:underline">
+                  AI Chat App
+                </Link>
                 <span className="truncate text-xs text-muted-foreground font-mono">v1.0.0</span>
               </div>
               <SidebarTrigger asChild />
@@ -50,6 +51,7 @@ export function AppSidebar() {
       <SidebarContent className="h-auto bg-background shadow-sm">
         {isAuthenticated && <NavMain />}
         {isAuthenticated && <NavRecentChats />}
+        {isAuthenticated && <NavArchivedChats />}
         <NavSecondary />
       </SidebarContent>
       <SidebarFooter className="bg-background rounded-b-xl shadow-sm ">
@@ -62,16 +64,21 @@ export function AppSidebar() {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    size="lg"
+                    asChild
                     className="data-[state=open]:bg-sidebar-accent group data-[state=open]:text-sidebar-accent-foreground"
+                    size="lg"
                   >
-                    <div className="flex aspect-square size-8 items-center justify-center rounded-lg ">
-                      <LogIn className="size-4" />
-                    </div>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-medium">Sign In</span>
-                      <span className="truncate text-xs text-muted-foreground font-mono">Access chatting with AI.</span>
-                    </div>
+                    <Link href="/auth/sign-in">
+                      <div className="flex aspect-square size-8 items-center justify-center rounded-lg ">
+                        <LogIn className="size-4" />
+                      </div>
+                      <div className="grid flex-1 text-left text-sm leading-tight">
+                        <span className="truncate font-medium">Sign In</span>
+                        <span className="truncate text-xs text-muted-foreground font-mono">
+                          Access chatting with AI.
+                        </span>
+                      </div>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

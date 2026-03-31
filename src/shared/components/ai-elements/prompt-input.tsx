@@ -184,19 +184,24 @@ const useOptionalProviderAttachments = () => useContext(ProviderAttachmentsConte
 
 export type PromptInputProviderProps = PropsWithChildren<{
   initialInput?: string;
+  initialAttachments?: (FileUIPart & { id: string })[];
 }>;
 
 /**
  * Optional global provider that lifts PromptInput state outside of PromptInput.
  * If you don't use it, PromptInput stays fully self-managed.
  */
-export const PromptInputProvider = ({ initialInput: initialTextInput = "", children }: PromptInputProviderProps) => {
+export const PromptInputProvider = ({
+  initialInput: initialTextInput = "",
+  initialAttachments = [],
+  children,
+}: PromptInputProviderProps) => {
   // ----- textInput state
   const [textInput, setTextInput] = useState(initialTextInput);
   const clearInput = useCallback(() => setTextInput(""), []);
 
   // ----- attachments state (global when wrapped)
-  const [attachmentFiles, setAttachmentFiles] = useState<(FileUIPart & { id: string })[]>([]);
+  const [attachmentFiles, setAttachmentFiles] = useState<(FileUIPart & { id: string })[]>(initialAttachments);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   // oxlint-disable-next-line eslint(no-empty-function)
   const openRef = useRef<() => void>(() => {});

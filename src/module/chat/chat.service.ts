@@ -1,9 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import type { UIMessage } from "ai";
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { db } from "@/core/db/db";
 import { chatMessage, chatThread, usageEvent } from "@/core/db/db.schema";
 import { extractPlainTextFromMessage } from "@/module/ai/ai.tokens";
+import type { PersistedChatMessage } from "./chat-message.utils";
+
+const THREAD_CONTEXT_MESSAGE_LIMIT = 12;
+const THREAD_SUMMARY_TRIGGER_COUNT = 18;
+const THREAD_SUMMARY_MAX_CHARS = 4000;
 
 function createId() {
   return crypto.randomUUID();
@@ -15,21 +20,118 @@ export function deriveThreadTitle(content: string) {
   return normalized.slice(0, 80);
 }
 
-async function requireOwnedThread(userId: string, threadId: string) {
-  const thread = await db.query.chatThread.findFirst({
-    where: and(eq(chatThread.id, threadId), eq(chatThread.userId, userId), isNull(chatThread.deletedAt)),
+function buildDeterministicThreadSummary(messages: PersistedChatMessage[]) {
+  return messages
+    .filter((message) => (message.role === "user" || message.role === "assistant") && message.content.trim().length > 0)
+    .map((message) => `${message.role === "user" ? "User" : "Assistant"}: ${message.content.trim()}`)
+    .join("\n")
+    .slice(0, THREAD_SUMMARY_MAX_CHARS)
+    .trim();
+}
+
+function calculateThreadUsageTotals(messages: PersistedChatMessage[]) {
+  return messages.reduce(
+    (totals, message) => ({
+      completionTokens: totals.completionTokens + Number(message.completionTokens ?? 0),
+      creditCost: totals.creditCost + Number(message.creditCost ?? 0),
+      promptTokens: totals.promptTokens + Number(message.promptTokens ?? 0),
+      reasoningTokens: totals.reasoningTokens + Number(message.reasoningTokens ?? 0),
+      totalTokens: totals.totalTokens + Number(message.totalTokens ?? 0),
+    }),
+    {
+      completionTokens: 0,
+      creditCost: 0,
+      promptTokens: 0,
+      reasoningTokens: 0,
+      totalTokens: 0,
+    },
+  );
+}
+
+async function getOwnedThread(userId: string, threadId: string) {
+  return db.query.chatThread.findFirst({
+    where: and(eq(chatThread.id, threadId), eq(chatThread.userId, userId)),
   });
+}
+
+async function requireOwnedThread(userId: string, threadId: string, options?: { allowArchived?: boolean }) {
+  const thread = await getOwnedThread(userId, threadId);
 
   if (!thread) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Chat thread not found" });
   }
 
+  if (!options?.allowArchived && thread.deletedAt) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "This chat is archived. Restore it before sending new messages.",
+    });
+  }
+
   return thread;
 }
 
-export async function listThreads(userId: string, limit = 50) {
+async function listThreadMessages(threadId: string) {
+  return db.query.chatMessage.findMany({
+    where: eq(chatMessage.threadId, threadId),
+    orderBy: asc(chatMessage.createdAt),
+  });
+}
+
+async function refreshThreadSummary(threadId: string) {
+  const thread = await db.query.chatThread.findFirst({
+    where: eq(chatThread.id, threadId),
+  });
+
+  if (!thread) {
+    return null;
+  }
+
+  const messages = await listThreadMessages(threadId);
+  const eligibleMessages = messages.filter(
+    (message) =>
+      (message.role === "user" || message.role === "assistant") &&
+      message.status !== "failed" &&
+      message.content.trim().length > 0,
+  );
+
+  if (eligibleMessages.length <= THREAD_SUMMARY_TRIGGER_COUNT) {
+    return thread;
+  }
+
+  const messagesToSummarize = eligibleMessages.slice(
+    0,
+    Math.max(0, eligibleMessages.length - THREAD_CONTEXT_MESSAGE_LIMIT),
+  );
+  const nextSummary = buildDeterministicThreadSummary(messagesToSummarize);
+
+  if (!nextSummary || nextSummary === thread.summary) {
+    return thread;
+  }
+
+  await db
+    .update(chatThread)
+    .set({
+      summary: nextSummary,
+      summaryUpdatedAt: new Date(),
+      summaryVersion: Number(thread.summaryVersion ?? 0) + 1,
+    })
+    .where(eq(chatThread.id, threadId));
+
+  return db.query.chatThread.findFirst({
+    where: eq(chatThread.id, threadId),
+  });
+}
+
+export async function listThreads(userId: string, input?: { archived?: boolean; limit?: number }) {
+  const archived = input?.archived ?? false;
+  const limit = input?.limit ?? 50;
+
   return db.query.chatThread.findMany({
-    where: and(eq(chatThread.userId, userId), isNull(chatThread.deletedAt)),
+    where: and(
+      eq(chatThread.userId, userId),
+      archived ? isNotNull(chatThread.deletedAt) : isNull(chatThread.deletedAt),
+    ),
     orderBy: desc(chatThread.lastMessageAt),
     limit,
   });
@@ -47,24 +149,23 @@ export async function createThread(input: { userId: string; title?: string; mode
     model: input.model,
   });
 
-  return requireOwnedThread(input.userId, id);
+  return requireOwnedThread(input.userId, id, { allowArchived: true });
 }
 
 export async function getThread(userId: string, threadId: string) {
-  const thread = await requireOwnedThread(userId, threadId);
-  const messages = await db.query.chatMessage.findMany({
-    where: eq(chatMessage.threadId, threadId),
-    orderBy: asc(chatMessage.createdAt),
-  });
+  const thread = await requireOwnedThread(userId, threadId, { allowArchived: true });
+  const messages = await listThreadMessages(threadId);
 
   return {
-    thread,
+    isArchived: Boolean(thread.deletedAt),
     messages,
+    thread,
+    usageTotals: calculateThreadUsageTotals(messages),
   };
 }
 
 export async function renameThread(input: { userId: string; threadId: string; title: string }) {
-  await requireOwnedThread(input.userId, input.threadId);
+  await requireOwnedThread(input.userId, input.threadId, { allowArchived: true });
 
   await db
     .update(chatThread)
@@ -82,10 +183,10 @@ export async function renameThread(input: { userId: string; threadId: string; ti
     status: "recorded",
   });
 
-  return requireOwnedThread(input.userId, input.threadId);
+  return requireOwnedThread(input.userId, input.threadId, { allowArchived: true });
 }
 
-export async function softDeleteThread(input: { userId: string; threadId: string }) {
+export async function archiveThread(input: { userId: string; threadId: string }) {
   await requireOwnedThread(input.userId, input.threadId);
 
   await db
@@ -109,6 +210,20 @@ export async function softDeleteThread(input: { userId: string; threadId: string
   };
 }
 
+export async function restoreThread(input: { userId: string; threadId: string }) {
+  await requireOwnedThread(input.userId, input.threadId, { allowArchived: true });
+
+  await db
+    .update(chatThread)
+    .set({
+      deletedAt: null,
+      lastMessageAt: new Date(),
+    })
+    .where(and(eq(chatThread.id, input.threadId), eq(chatThread.userId, input.userId)));
+
+  return requireOwnedThread(input.userId, input.threadId);
+}
+
 export async function ensureThreadForRequest(input: {
   userId: string;
   threadId?: string | null;
@@ -122,7 +237,7 @@ export async function ensureThreadForRequest(input: {
 
   return createThread({
     userId: input.userId,
-    title: deriveThreadTitle(extractPlainTextFromMessage(input.latestUserMessage)),
+    title: undefined,
     model: input.model ?? undefined,
   });
 }
@@ -158,6 +273,7 @@ export async function persistUserMessage(input: {
     .update(chatThread)
     .set({
       lastMessageAt: new Date(),
+      model: input.model ?? null,
     })
     .where(eq(chatThread.id, input.threadId));
 
@@ -179,6 +295,7 @@ export async function createAssistantPlaceholder(input: {
   threadId: string;
   provider?: string | null;
   model?: string | null;
+  summaryVersionUsed?: number;
 }) {
   const id = createId();
 
@@ -191,6 +308,7 @@ export async function createAssistantPlaceholder(input: {
     content: "",
     provider: input.provider ?? null,
     model: input.model ?? null,
+    summaryVersionUsed: input.summaryVersionUsed ?? 0,
   });
 
   await db.insert(usageEvent).values({
@@ -222,6 +340,8 @@ export async function finalizeAssistantMessage(input: {
   threadId: string;
   messageId: string;
   content: string;
+  reasoning?: string | null;
+  reasoningTokens?: number;
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
@@ -229,6 +349,7 @@ export async function finalizeAssistantMessage(input: {
   provider?: string | null;
   model?: string | null;
   status?: "completed" | "cancelled";
+  summaryVersionUsed?: number;
 }) {
   await requireOwnedThread(input.userId, input.threadId);
 
@@ -237,6 +358,9 @@ export async function finalizeAssistantMessage(input: {
     .set({
       status: input.status ?? "completed",
       content: input.content,
+      reasoning: input.reasoning ?? null,
+      reasoningTokens: input.reasoningTokens ?? 0,
+      summaryVersionUsed: input.summaryVersionUsed ?? 0,
       promptTokens: input.promptTokens,
       completionTokens: input.completionTokens,
       totalTokens: input.totalTokens,
@@ -252,6 +376,7 @@ export async function finalizeAssistantMessage(input: {
     .update(chatThread)
     .set({
       lastMessageAt: new Date(),
+      model: input.model ?? null,
     })
     .where(eq(chatThread.id, input.threadId));
 
@@ -294,6 +419,8 @@ export async function finalizeAssistantMessage(input: {
     }
   }
 
+  await refreshThreadSummary(input.threadId);
+
   return message;
 }
 
@@ -325,4 +452,55 @@ export async function failAssistantMessage(input: {
     status: "recorded",
     payload: input.errorMessage,
   });
+}
+
+export async function getThreadContextForAssistant(input: { userId: string; threadId: string }) {
+  const thread = await requireOwnedThread(input.userId, input.threadId);
+  const messages = await listThreadMessages(input.threadId);
+  const eligibleMessages = messages.filter(
+    (message) =>
+      ["completed", "cancelled", "streaming"].includes(message.status) &&
+      (message.role === "user" || message.role === "assistant" || message.role === "system"),
+  );
+  const recentMessages = eligibleMessages.slice(-THREAD_CONTEXT_MESSAGE_LIMIT);
+  const uiMessages: UIMessage[] = recentMessages.map((message) => ({
+    id: message.clientMessageId ?? message.id,
+    role: (message.role === "tool" ? "assistant" : message.role) as UIMessage["role"],
+    parts: message.content
+      ? [
+          {
+            type: "text" as const,
+            text: message.content,
+          },
+        ]
+      : [],
+  }));
+
+  if (!thread.summary?.trim()) {
+    return {
+      messages: uiMessages,
+      summaryVersion: Number(thread.summaryVersion ?? 0),
+      thread,
+    };
+  }
+
+  const contextMessages: UIMessage[] = [
+    {
+      id: `summary-${thread.id}-${thread.summaryVersion}`,
+      role: "system",
+      parts: [
+        {
+          type: "text" as const,
+          text: `Conversation summary:\n${thread.summary}`,
+        },
+      ],
+    },
+    ...uiMessages,
+  ];
+
+  return {
+    messages: contextMessages,
+    summaryVersion: Number(thread.summaryVersion ?? 0),
+    thread,
+  };
 }

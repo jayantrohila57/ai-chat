@@ -4,6 +4,7 @@ export const PATH = {
   ROOT: "/",
   CHAT: {
     ROOT: "/chat" as Route,
+    THREAD: (threadId: string) => `/chat/${threadId}` as Route,
   },
   PRICING: {
     ROOT: "/pricing" as Route,

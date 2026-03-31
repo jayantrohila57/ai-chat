@@ -1,25 +1,33 @@
-import { createTRPCRouter, customerProcedure, withApiSuccess } from "@/core/api/api.methods";
+import { createTRPCRouter, protectedProcedure, withApiSuccess } from "@/core/api/api.methods";
+import { listAllowedAiModelsForUser } from "@/module/ai/ai.models";
 import {
+  archiveThreadInputSchema,
   createThreadInputSchema,
-  deleteThreadInputSchema,
   getThreadInputSchema,
   listThreadsInputSchema,
   renameThreadInputSchema,
+  restoreThreadInputSchema,
 } from "./chat.schema";
-import { createThread, getThread, listThreads, renameThread, softDeleteThread } from "./chat.service";
+import { archiveThread, createThread, getThread, listThreads, renameThread, restoreThread } from "./chat.service";
 
 export const chatRouter = createTRPCRouter({
-  list: customerProcedure
+  list: protectedProcedure
     .input(listThreadsInputSchema)
     .query(async ({ ctx, input }) =>
-      withApiSuccess(await listThreads(ctx.user.id, input.limit), "Threads retrieved successfully."),
+      withApiSuccess(
+        await listThreads(ctx.user.id, { archived: input.archived, limit: input.limit }),
+        "Threads retrieved successfully.",
+      ),
     ),
-  get: customerProcedure
+  get: protectedProcedure
     .input(getThreadInputSchema)
     .query(async ({ ctx, input }) =>
       withApiSuccess(await getThread(ctx.user.id, input.threadId), "Thread retrieved successfully."),
     ),
-  create: customerProcedure.input(createThreadInputSchema).mutation(async ({ ctx, input }) =>
+  models: protectedProcedure.query(async ({ ctx }) =>
+    withApiSuccess(await listAllowedAiModelsForUser(ctx.user.id), "Allowed chat models retrieved successfully."),
+  ),
+  create: protectedProcedure.input(createThreadInputSchema).mutation(async ({ ctx, input }) =>
     withApiSuccess(
       await createThread({
         userId: ctx.user.id,
@@ -29,7 +37,7 @@ export const chatRouter = createTRPCRouter({
       "Thread created successfully.",
     ),
   ),
-  rename: customerProcedure.input(renameThreadInputSchema).mutation(async ({ ctx, input }) =>
+  rename: protectedProcedure.input(renameThreadInputSchema).mutation(async ({ ctx, input }) =>
     withApiSuccess(
       await renameThread({
         userId: ctx.user.id,
@@ -39,13 +47,31 @@ export const chatRouter = createTRPCRouter({
       "Thread renamed successfully.",
     ),
   ),
-  delete: customerProcedure.input(deleteThreadInputSchema).mutation(async ({ ctx, input }) =>
+  archive: protectedProcedure.input(archiveThreadInputSchema).mutation(async ({ ctx, input }) =>
     withApiSuccess(
-      await softDeleteThread({
+      await archiveThread({
         userId: ctx.user.id,
         threadId: input.threadId,
       }),
-      "Thread deleted successfully.",
+      "Thread archived successfully.",
+    ),
+  ),
+  restore: protectedProcedure.input(restoreThreadInputSchema).mutation(async ({ ctx, input }) =>
+    withApiSuccess(
+      await restoreThread({
+        userId: ctx.user.id,
+        threadId: input.threadId,
+      }),
+      "Thread restored successfully.",
+    ),
+  ),
+  delete: protectedProcedure.input(archiveThreadInputSchema).mutation(async ({ ctx, input }) =>
+    withApiSuccess(
+      await archiveThread({
+        userId: ctx.user.id,
+        threadId: input.threadId,
+      }),
+      "Thread archived successfully.",
     ),
   ),
 });

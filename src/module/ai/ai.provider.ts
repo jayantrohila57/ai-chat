@@ -11,8 +11,9 @@ export function getChatModel(model = serverEnv.OLLAMA_MODEL) {
 
 export function getAiRuntimeConfig() {
   return {
-    provider: serverEnv.AI_PROVIDER,
-    model: serverEnv.OLLAMA_MODEL,
     ollamaBaseUrl: serverEnv.OLLAMA_BASE_URL,
+    provider: serverEnv.AI_PROVIDER,
+    providerLabel: "Ollama",
+    supportsLocalModels: true,
   };
 }

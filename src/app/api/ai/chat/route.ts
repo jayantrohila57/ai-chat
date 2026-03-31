@@ -1,35 +1,97 @@
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import { TRPCError } from "@trpc/server";
+import { convertToModelMessages, streamText, type LanguageModelUsage, type UIMessage } from "ai";
 import { z } from "zod/v3";
 import { checkArcjet } from "@/app/api/auth/[...all]/arkjet.config";
 import { getServerSession } from "@/core/auth/auth.server";
 import { getChatModel } from "@/module/ai/ai.provider";
-import {
-  estimateCreditReservation,
-  estimateTokenCount,
-  estimateTokensFromMessages,
-  extractPlainTextFromMessage,
-} from "@/module/ai/ai.tokens";
-import {
-  createAssistantPlaceholder,
-  ensureThreadForRequest,
-  failAssistantMessage,
-  finalizeAssistantMessage,
-  persistUserMessage,
-} from "@/module/chat/chat.service";
-import {
-  ensureWalletForUser,
-  grantStarterCreditsIfEligible,
-  reserveCredits,
-  settleReservedCredits,
-} from "@/module/credits/credits.service";
+import { extractPlainTextFromMessage } from "@/module/ai/ai.tokens";
+import { finalizeChatExchange, prepareChatExchange } from "@/module/chat/chat.orchestration";
+import { getReasoningLevelTemperature, type ChatReasoningLevel } from "@/module/chat/chat.runtime";
+import { failAssistantMessage } from "@/module/chat/chat.service";
+import { settleReservedCredits } from "@/module/credits/credits.service";
 import { jsonFailure } from "@/shared/config/api.utils";
-import { serverEnv } from "@/shared/config/env.server";
+
+type UsageSnapshot = Pick<LanguageModelUsage, "inputTokens" | "outputTokens" | "totalTokens"> & {
+  reasoningTokens?: number;
+  outputTokenDetails?: { reasoningTokens?: number };
+};
 
 const requestSchema = z.object({
   threadId: z.string().uuid().optional(),
-  model: z.string().trim().min(1).max(120).optional(),
+  model: z.string().trim().min(1).max(240).optional(),
+  reasoningEnabled: z.boolean().optional(),
+  reasoningLevel: z.enum(["low", "medium", "high"]).optional(),
   messages: z.array(z.custom<UIMessage>()).min(1),
 });
+
+function buildErrorResponse(error: unknown) {
+  if (error instanceof TRPCError) {
+    switch (error.code) {
+      case "UNAUTHORIZED":
+        return jsonFailure({
+          message: error.message,
+          code: error.code,
+          kind: "auth",
+          httpStatus: 401,
+          status: "failed",
+        });
+      case "FORBIDDEN":
+        return jsonFailure({
+          message: error.message,
+          code: error.code,
+          kind: "forbidden",
+          httpStatus: 403,
+          status: "failed",
+        });
+      case "NOT_FOUND":
+        return jsonFailure({
+          message: error.message,
+          code: error.code,
+          kind: "not_found",
+          httpStatus: 404,
+          status: "failed",
+        });
+      case "PRECONDITION_FAILED":
+      case "BAD_REQUEST":
+        return jsonFailure({
+          message: error.message,
+          code: error.code,
+          kind: error.code === "BAD_REQUEST" ? "validation" : "conflict",
+          httpStatus: error.code === "BAD_REQUEST" ? 400 : 412,
+          status: "failed",
+        });
+      default:
+        return jsonFailure({
+          message: error.message,
+          code: error.code,
+          kind: "server",
+          httpStatus: 500,
+        });
+    }
+  }
+
+  return jsonFailure({
+    message: error instanceof Error ? error.message : "Unexpected chat route failure",
+    code: "INTERNAL_SERVER_ERROR",
+    kind: "server",
+    httpStatus: 500,
+  });
+}
+
+function getReasoningPreference(input: {
+  reasoningEnabled?: boolean;
+  reasoningLevel?: ChatReasoningLevel;
+  supportsReasoning: boolean;
+}) {
+  const reasoningEnabled = Boolean(input.reasoningEnabled) && input.supportsReasoning;
+  const reasoningLevel = input.reasoningLevel ?? "medium";
+
+  return {
+    reasoningEnabled,
+    reasoningLevel,
+    temperature: getReasoningLevelTemperature(reasoningLevel),
+  };
+}
 
 export async function POST(req: Request) {
   try {
@@ -67,7 +129,7 @@ export async function POST(req: Request) {
       });
     }
 
-    const { messages, threadId, model } = parsed.data;
+    const { messages, threadId, model, reasoningEnabled, reasoningLevel } = parsed.data;
     const latestUserMessage = [...messages].reverse().find((message) => message.role === "user");
 
     if (!latestUserMessage) {
@@ -80,146 +142,160 @@ export async function POST(req: Request) {
       });
     }
 
-    await ensureWalletForUser(user.id);
-    await grantStarterCreditsIfEligible(user.id);
-
-    const thread = await ensureThreadForRequest({
-      userId: user.id,
-      threadId,
-      model,
+    const prepared = await prepareChatExchange({
       latestUserMessage,
-    });
-
-    const persistedUserMessage = await persistUserMessage({
+      modelId: model,
+      requestMessages: messages,
+      threadId,
       userId: user.id,
-      threadId: thread.id,
-      message: latestUserMessage,
-      model: model ?? thread.model,
+    });
+    const reasoningPreference = getReasoningPreference({
+      reasoningEnabled,
+      reasoningLevel,
+      supportsReasoning: prepared.resolvedModel.supportsReasoning,
     });
 
-    const estimatedPromptTokens = Math.max(
-      estimateTokensFromMessages(messages),
-      estimateTokenCount(persistedUserMessage.content),
-    );
-    const reservedCreditsAmount = estimateCreditReservation(
-      estimatedPromptTokens,
-      serverEnv.CHAT_RESERVE_RATIO,
-      serverEnv.CHAT_RESERVE_MIN_CREDITS,
-    );
-
-    let reservedCredits = 0;
-    let assistantMessageId: string | null = null;
+    const usagePromise = {
+      current: Promise.resolve<UsageSnapshot>({ inputTokens: 0, outputTokens: 0, totalTokens: 0 }),
+    };
+    const reasoningPromise = { current: Promise.resolve<string | undefined>(undefined) };
+    const finishMetadata = { current: undefined as Record<string, unknown> | undefined };
 
     try {
-      const reservation = await reserveCredits({
-        userId: user.id,
-        amountCredits: reservedCreditsAmount,
-        threadId: thread.id,
-        messageId: persistedUserMessage.id,
-        note: `Reserved for thread ${thread.id}`,
-      });
-      reservedCredits = reservation.reservedCredits;
-
-      const assistantMessage = await createAssistantPlaceholder({
-        userId: user.id,
-        threadId: thread.id,
-        provider: serverEnv.AI_PROVIDER,
-        model: model ?? thread.model ?? serverEnv.OLLAMA_MODEL,
-      });
-      assistantMessageId = assistantMessage.id;
-
       const result = streamText({
-        model: getChatModel(model ?? thread.model ?? serverEnv.OLLAMA_MODEL),
-        providerOptions: { ollama: { think: true } },
-        messages: await convertToModelMessages(messages),
+        model: getChatModel(prepared.resolvedModel.providerModel),
+        providerOptions: { ollama: { think: reasoningPreference.reasoningEnabled } },
+        messages: await convertToModelMessages(prepared.context.messages),
+        temperature: reasoningPreference.temperature,
         abortSignal: req.signal,
       });
 
-      const usagePromise = Promise.resolve(result.totalUsage).catch(() => ({
-        inputTokens: estimatedPromptTokens,
+      usagePromise.current = Promise.resolve(result.totalUsage as PromiseLike<UsageSnapshot>).catch(() => ({
+        inputTokens: prepared.estimatedPromptTokens,
         outputTokens: 0,
-        totalTokens: estimatedPromptTokens,
+        totalTokens: prepared.estimatedPromptTokens,
       }));
+      reasoningPromise.current = Promise.resolve(result.reasoningText).catch(() => undefined);
+      void Promise.all([usagePromise.current, reasoningPromise.current]).then(([usage, reasoning]) => {
+        const promptTokens = Number(usage.inputTokens ?? prepared.estimatedPromptTokens);
+        const completionTokens = Number(usage.outputTokens ?? 0);
+        const totalTokens = Number(usage.totalTokens ?? promptTokens + completionTokens);
+        const reasoningTokens = Number(
+          (
+            usage as {
+              outputTokenDetails?: { reasoningTokens?: number };
+              reasoningTokens?: number;
+            }
+          ).outputTokenDetails?.reasoningTokens ??
+            (usage as { reasoningTokens?: number }).reasoningTokens ??
+            0,
+        );
+
+        finishMetadata.current = {
+          assistantMessageId: prepared.assistantMessage.id,
+          completionTokens,
+          creditCost: undefined,
+          model: prepared.resolvedModel.id,
+          persistedMessageId: prepared.assistantMessage.id,
+          promptTokens,
+          provider: prepared.resolvedModel.provider,
+          reasoning: reasoning ?? undefined,
+          reasoningEnabled: reasoningPreference.reasoningEnabled,
+          reasoningLevel: reasoningPreference.reasoningLevel,
+          reasoningTokens,
+          status: "completed",
+          summaryVersionUsed: prepared.context.summaryVersion,
+          threadId: prepared.thread.id,
+          totalTokens,
+        };
+      });
 
       return result.toUIMessageStreamResponse({
         originalMessages: messages,
-        generateMessageId: () => assistantMessage.id,
+        generateMessageId: () => prepared.assistantMessage.id,
         messageMetadata: ({ part }) => {
-          if (part.type !== "start" && part.type !== "finish") {
-            return undefined;
+          if (part.type === "start") {
+            return {
+              assistantMessageId: prepared.assistantMessage.id,
+              model: prepared.resolvedModel.id,
+              persistedMessageId: prepared.assistantMessage.id,
+              provider: prepared.resolvedModel.provider,
+              reasoningEnabled: reasoningPreference.reasoningEnabled,
+              reasoningLevel: reasoningPreference.reasoningLevel,
+              reservedCredits: prepared.reservedCredits,
+              status: prepared.assistantMessage.status,
+              threadId: prepared.thread.id,
+            };
           }
 
-          return {
-            threadId: thread.id,
-            assistantMessageId: assistantMessage.id,
-            reservedCredits,
-          };
+          if (part.type === "finish") {
+            return finishMetadata.current;
+          }
+
+          return undefined;
         },
+        sendReasoning: reasoningPreference.reasoningEnabled,
+        onError: (error) => (error instanceof Error ? error.message : "Failed to stream chat response."),
         onFinish: async ({ isAborted, responseMessage }) => {
-          const usage = await usagePromise;
+          const usage = await usagePromise.current;
+          const reasoning = await reasoningPromise.current;
           const content = extractPlainTextFromMessage(responseMessage);
-          const promptTokens = Number(usage.inputTokens ?? estimatedPromptTokens);
-          const completionTokens = Number(usage.outputTokens ?? estimateTokenCount(content));
-          const totalTokens = Number(usage.totalTokens ?? promptTokens + completionTokens);
+          const promptTokens = Number(usage.inputTokens ?? prepared.estimatedPromptTokens);
+          const completionTokens = Number(usage.outputTokens ?? 0);
+          const reportedTotalTokens = Number(usage.totalTokens ?? promptTokens + completionTokens);
+          const reasoningTokens = Number(
+            (
+              usage as {
+                outputTokenDetails?: { reasoningTokens?: number };
+                reasoningTokens?: number;
+              }
+            ).outputTokenDetails?.reasoningTokens ??
+              (usage as { reasoningTokens?: number }).reasoningTokens ??
+              0,
+          );
 
-          const settlement = await settleReservedCredits({
-            userId: user.id,
-            reservedCredits,
-            actualCredits: totalTokens,
-            threadId: thread.id,
-            messageId: assistantMessage.id,
-          });
-
-          await finalizeAssistantMessage({
-            userId: user.id,
-            threadId: thread.id,
-            messageId: assistantMessage.id,
+          await finalizeChatExchange({
             content,
-            promptTokens,
             completionTokens,
-            totalTokens,
-            creditCost: settlement.chargedCredits,
-            provider: serverEnv.AI_PROVIDER,
-            model: model ?? thread.model ?? serverEnv.OLLAMA_MODEL,
+            creditMultiplierBps: prepared.resolvedModel.creditMultiplierBps,
+            messageId: prepared.assistantMessage.id,
+            modelId: prepared.resolvedModel.id,
+            promptTokens,
+            provider: prepared.resolvedModel.provider,
+            reasoning: reasoningPreference.reasoningEnabled ? (reasoning ?? null) : null,
+            reasoningTokens: reasoningPreference.reasoningEnabled ? reasoningTokens : 0,
+            reservedCredits: prepared.reservedCredits,
             status: isAborted ? "cancelled" : "completed",
+            summaryVersionUsed: prepared.context.summaryVersion,
+            threadId: prepared.thread.id,
+            totalTokens: reportedTotalTokens,
+            userId: user.id,
           });
         },
       });
     } catch (error) {
-      if (assistantMessageId) {
-        await failAssistantMessage({
-          userId: user.id,
-          threadId: thread.id,
-          messageId: assistantMessageId,
-          errorMessage: error instanceof Error ? error.message : "Unknown chat generation error",
-          provider: serverEnv.AI_PROVIDER,
-          model: model ?? thread.model ?? serverEnv.OLLAMA_MODEL,
-        });
-      }
+      await failAssistantMessage({
+        userId: user.id,
+        threadId: prepared.thread.id,
+        messageId: prepared.assistantMessage.id,
+        errorMessage: error instanceof Error ? error.message : "Unknown chat generation error",
+        provider: prepared.resolvedModel.provider,
+        model: prepared.resolvedModel.id,
+      });
 
-      if (reservedCredits > 0) {
+      if (prepared.reservedCredits > 0) {
         await settleReservedCredits({
           userId: user.id,
-          reservedCredits,
+          reservedCredits: prepared.reservedCredits,
           actualCredits: 0,
-          threadId: thread.id,
-          messageId: assistantMessageId ?? persistedUserMessage.id,
+          threadId: prepared.thread.id,
+          messageId: prepared.assistantMessage.id,
         });
       }
 
-      return jsonFailure({
-        message: error instanceof Error ? error.message : "Failed to generate assistant response",
-        code: "INTERNAL_SERVER_ERROR",
-        kind: "server",
-        httpStatus: 500,
-      });
+      return buildErrorResponse(error);
     }
   } catch (error) {
-    return jsonFailure({
-      message: error instanceof Error ? error.message : "Unexpected chat route failure",
-      code: "INTERNAL_SERVER_ERROR",
-      kind: "server",
-      httpStatus: 500,
-    });
+    return buildErrorResponse(error);
   }
 }

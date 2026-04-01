@@ -111,9 +111,22 @@ const tokensCache = new Map<string, TokenizedCode>();
 const subscribers = new Map<string, Set<(result: TokenizedCode) => void>>();
 
 const getTokensCacheKey = (code: string, language: BundledLanguage) => {
-  const start = code.slice(0, 100);
-  const end = code.length > 100 ? code.slice(-100) : "";
-  return `${language}:${code.length}:${start}:${end}`;
+  // For short code (<500 chars), use the full content to avoid collisions
+  // For longer code, use a content hash approach with length and samples
+  if (code.length < 500) {
+    return `${language}:${code}`;
+  }
+
+  // Simple hash for longer content to reduce collision risk
+  let hash = 0;
+  for (let i = 0; i < code.length; i++) {
+    const char = code.charCodeAt(i);
+    hash = ((hash << 5) - hash + char) | 0;
+  }
+
+  const start = code.slice(0, 50);
+  const end = code.slice(-50);
+  return `${language}:${code.length}:${hash}:${start}:${end}`;
 };
 
 const getHighlighter = (language: BundledLanguage): Promise<HighlighterGeneric<BundledLanguage, BundledTheme>> => {

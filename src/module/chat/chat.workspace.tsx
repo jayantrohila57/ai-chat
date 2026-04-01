@@ -861,6 +861,7 @@ function ChatWorkspaceInner({ mode, thread, initialMessages = [] }: ChatWorkspac
             reasoningEnabled,
             reasoningLevel,
             threadId: thread?.id,
+            webSearch: useWebSearch,
           },
         },
       );
@@ -874,6 +875,7 @@ function ChatWorkspaceInner({ mode, thread, initialMessages = [] }: ChatWorkspac
       model,
       reasoningEnabled,
       reasoningLevel,
+      useWebSearch,
       sendMessage,
       thread?.id,
       controller.textInput,
@@ -908,6 +910,7 @@ function ChatWorkspaceInner({ mode, thread, initialMessages = [] }: ChatWorkspac
           reasoningEnabled,
           reasoningLevel,
           threadId: thread?.id,
+          webSearch: useWebSearch,
         },
       });
     },
@@ -927,11 +930,12 @@ function ChatWorkspaceInner({ mode, thread, initialMessages = [] }: ChatWorkspac
             reasoningEnabled,
             reasoningLevel,
             threadId: thread?.id,
+            webSearch: useWebSearch,
           },
         },
       );
     },
-    [model, reasoningEnabled, reasoningLevel, sendMessage, thread?.id],
+    [model, reasoningEnabled, reasoningLevel, useWebSearch, sendMessage, thread?.id],
   );
 
   const handleRename = useCallback(async () => {
@@ -1183,6 +1187,12 @@ function ChatWorkspaceInner({ mode, thread, initialMessages = [] }: ChatWorkspac
                     <div className="flex items-start w-full px-2 justify-between">
                       <PromptInputTextarea className="max-w-xl w-full" disabled={isArchived} />
                       <span className="text-muted-foreground text-xs">
+                        {/* 
+                          Rough token estimation:
+                          - 0.25 multiplier assumes ~4 chars per token (approximation for English text)
+                          - 1000 tokens per file is a conservative estimate for file processing overhead
+                          Note: This is a heuristic and actual token counts may vary by model/tokenizer
+                        */}
                         {Math.round(
                           controller.textInput.value.length * 0.25 + attachments.files.length * 1000,
                         ).toLocaleString()}{" "}
@@ -1245,7 +1255,8 @@ function ChatWorkspaceInner({ mode, thread, initialMessages = [] }: ChatWorkspac
                       <Context
                         maxTokens={selectedModelData?.contextWindow ?? 128000}
                         modelId={model}
-                        usedTokens={controller.textInput.value.length * 0.25 + attachments.files.length * 1000} // Rough estimate
+                        // Rough token estimation: 0.25 chars/token ratio + 1000 tokens per file attachment
+                        usedTokens={controller.textInput.value.length * 0.25 + attachments.files.length * 1000}
                       >
                         <ContextTrigger />
 

@@ -26,6 +26,6 @@ export function getAiRuntimeConfig(provider = serverEnv.AI_PROVIDER) {
       providerLabel: "Google",
     };
   } else {
-    throw new Error(`Unsupported AI provider: ${serverEnv.AI_PROVIDER}`);
+    throw new Error(`Unsupported AI provider: ${provider}`);
   }
 }

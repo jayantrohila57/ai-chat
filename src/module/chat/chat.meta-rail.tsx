@@ -46,6 +46,7 @@ type ChatMetaRailProps = {
 function RailBody({
   isArchived,
   isBusy,
+  messages,
   mode,
   onArchive,
   onAutoRename,
@@ -106,7 +107,7 @@ function RailBody({
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Messages</span>
-            <Badge variant="secondary">{Math.floor((thread?.id ? 1 : 0) + (mode === "thread" ? 1 : 0))}</Badge>
+            <Badge variant="secondary">{messages.length}</Badge>
           </div>
         </div>
       </div>

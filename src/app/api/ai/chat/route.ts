@@ -22,6 +22,7 @@ const requestSchema = z.object({
   model: z.string().trim().min(1).max(240).optional(),
   reasoningEnabled: z.boolean().optional(),
   reasoningLevel: z.enum(["low", "medium", "high"]).optional(),
+  webSearch: z.boolean().optional(),
   messages: z.array(z.custom<UIMessage>()).min(1),
 });
 
@@ -130,7 +131,7 @@ export async function POST(req: Request) {
       });
     }
 
-    const { messages, threadId, model, reasoningEnabled, reasoningLevel } = parsed.data;
+    const { messages, threadId, model, reasoningEnabled, reasoningLevel, webSearch } = parsed.data;
     const latestUserMessage = [...messages].reverse().find((message) => message.role === "user");
 
     if (!latestUserMessage) {
@@ -165,7 +166,10 @@ export async function POST(req: Request) {
     try {
       const result = streamText({
         model: getChatModel(prepared.resolvedModel.providerModel, prepared.resolvedModel.provider),
-        providerOptions: prepared.resolvedModel.provider === "ollama" ? { ollama: { think: reasoningPreference.reasoningEnabled } } : {},
+        providerOptions:
+          prepared.resolvedModel.provider === "ollama"
+            ? { ollama: { think: reasoningPreference.reasoningEnabled } }
+            : {},
         messages: await convertToModelMessages(prepared.context.messages),
         temperature: reasoningPreference.temperature,
         abortSignal: req.signal,

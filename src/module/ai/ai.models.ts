@@ -7,7 +7,6 @@ import { aiModel } from "@/core/db/db.schema";
 import type { BillingPlanCode } from "@/module/billing/billing.catalog";
 import { getBillingSummary } from "@/module/billing/billing.service";
 import { serverEnv } from "@/shared/config/env.server";
-import { AI_MODEL_SEEDS } from "./ai.catalog";
 
 const RUNTIME_MODEL_ID_PREFIX = "runtime:ollama:";
 
@@ -35,11 +34,11 @@ function titleCaseModelName(modelName: string) {
 }
 
 function getFallbackRuntimeMultiplierBps() {
-  return AI_MODEL_SEEDS.find((model) => model.isDefault)?.creditMultiplierBps ?? 10000;
+  return 10000;
 }
 
 function getFallbackRuntimeSupportsReasoning() {
-  return AI_MODEL_SEEDS.find((model) => model.isDefault)?.supportsReasoning ?? true;
+  return true;
 }
 
 export function createRuntimeAiModelId(providerModel: string) {
@@ -90,42 +89,8 @@ export async function listRuntimeAvailableOllamaModels() {
 }
 
 export async function syncAiModels() {
-  for (const definition of AI_MODEL_SEEDS) {
-    await db
-      .insert(aiModel)
-      .values({
-        id: definition.id,
-        provider: definition.provider,
-        providerModel: definition.providerModel,
-        displayName: definition.displayName,
-        description: definition.description,
-        planCode: definition.planCode,
-        enabled: definition.enabled,
-        isDefault: definition.isDefault,
-        supportsReasoning: definition.supportsReasoning,
-        creditMultiplierBps: definition.creditMultiplierBps,
-        contextWindow: definition.contextWindow ?? null,
-        maxOutputTokens: definition.maxOutputTokens ?? null,
-        sortOrder: definition.sortOrder,
-      })
-      .onConflictDoUpdate({
-        target: aiModel.id,
-        set: {
-          provider: definition.provider,
-          providerModel: definition.providerModel,
-          displayName: definition.displayName,
-          description: definition.description,
-          planCode: definition.planCode,
-          enabled: definition.enabled,
-          isDefault: definition.isDefault,
-          supportsReasoning: definition.supportsReasoning,
-          creditMultiplierBps: definition.creditMultiplierBps,
-          contextWindow: definition.contextWindow ?? null,
-          maxOutputTokens: definition.maxOutputTokens ?? null,
-          sortOrder: definition.sortOrder,
-        },
-      });
-  }
+  // No-op: Models are now managed directly in the database
+  // This function is kept for backward compatibility
 }
 
 export type PublicAiModel = {
@@ -205,46 +170,39 @@ function comparePublicModels(a: PublicAiModel, b: PublicAiModel) {
 }
 
 export async function listAllowedAiModelsForUser(userId: string): Promise<PublicAiModel[]> {
-  await syncAiModels();
-
-  const [planCode, runtimeModels, allModels] = await Promise.all([
+  const [planCode, runtimeOllamaModels] = await Promise.all([
     getCurrentPlanCode(userId),
     listRuntimeAvailableOllamaModels().catch(() => new Set<string>()),
-    db.query.aiModel.findMany({
-      where: and(eq(aiModel.enabled, true), eq(aiModel.provider, "ollama")),
-      orderBy: [asc(aiModel.sortOrder), asc(aiModel.displayName)],
-    }),
   ]);
 
-  const configuredProviderModels = new Set(allModels.map((model) => model.providerModel));
-  const allowedConfiguredModels = allModels
+  // Fetch all enabled models from DB (both ollama and google providers)
+  const allModels = await db.query.aiModel.findMany({
+    where: eq(aiModel.enabled, true),
+    orderBy: [asc(aiModel.sortOrder), asc(aiModel.displayName)],
+  });
+
+  // Filter by plan and determine runtime availability
+  const allowedModels = allModels
     .filter((model) => getPlanRank(model.planCode as BillingPlanCode) <= getPlanRank(planCode))
-    .map((model) => toPublicModel(model, runtimeModels.has(model.providerModel)));
+    .map((model) => {
+      // Ollama models need runtime check, Google models are always available
+      const runtimeAvailable = model.provider === "google" || runtimeOllamaModels.has(model.providerModel);
+      return toPublicModel(model, runtimeAvailable);
+    });
 
-  const discoveredRuntimeModels = [...runtimeModels]
-    .filter((providerModel) => !configuredProviderModels.has(providerModel))
-    .sort((left, right) => left.localeCompare(right))
-    .map((providerModel) => createRuntimePublicModel(providerModel, planCode));
-
-  return [...allowedConfiguredModels, ...discoveredRuntimeModels].sort(comparePublicModels);
+  return allowedModels.sort(comparePublicModels);
 }
 
 export async function getResolvedAiModelForUser(input: { userId: string; modelId?: string | null }) {
-  await syncAiModels();
-
-  const [planCode, runtimeModels] = await Promise.all([
+  const [planCode, runtimeOllamaModels] = await Promise.all([
     getCurrentPlanCode(input.userId),
-    listRuntimeAvailableOllamaModels().catch(() => {
-      throw new TRPCError({
-        code: "PRECONDITION_FAILED",
-        message: "Ollama is not reachable right now. Please make sure the local model server is running.",
-      });
-    }),
+    listRuntimeAvailableOllamaModels().catch(() => new Set<string>()),
   ]);
 
+  // Handle runtime Ollama models (backward compatibility)
   const runtimeProviderModel = input.modelId ? getRuntimeProviderModelFromId(input.modelId) : null;
   if (runtimeProviderModel) {
-    if (!runtimeModels.has(runtimeProviderModel)) {
+    if (!runtimeOllamaModels.has(runtimeProviderModel)) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
         message: `${runtimeProviderModel} is not available in Ollama right now.`,
@@ -257,20 +215,21 @@ export async function getResolvedAiModelForUser(input: { userId: string; modelId
     };
   }
 
-  const model =
-    (input.modelId
-      ? await db.query.aiModel.findFirst({
-          where: and(eq(aiModel.id, input.modelId), eq(aiModel.enabled, true), eq(aiModel.provider, "ollama")),
-        })
-      : await db.query.aiModel.findFirst({
-          where: and(eq(aiModel.enabled, true), eq(aiModel.isDefault, true), eq(aiModel.provider, "ollama")),
-          orderBy: [asc(aiModel.sortOrder), asc(aiModel.displayName)],
-        })) ?? null;
+  // Fetch model from DB (any provider)
+  const model = input.modelId
+    ? await db.query.aiModel.findFirst({
+        where: and(eq(aiModel.id, input.modelId), eq(aiModel.enabled, true)),
+      })
+    : await db.query.aiModel.findFirst({
+        where: and(eq(aiModel.enabled, true), eq(aiModel.isDefault, true)),
+        orderBy: [asc(aiModel.sortOrder), asc(aiModel.displayName)],
+      });
 
   if (!model) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Selected chat model is not configured." });
   }
 
+  // Plan check
   if (getPlanRank(model.planCode as BillingPlanCode) > getPlanRank(planCode)) {
     throw new TRPCError({
       code: "FORBIDDEN",
@@ -278,19 +237,19 @@ export async function getResolvedAiModelForUser(input: { userId: string; modelId
     });
   }
 
-  if (!runtimeModels.has(model.providerModel)) {
+  // Runtime availability check (only for Ollama)
+  if (model.provider === "ollama" && !runtimeOllamaModels.has(model.providerModel)) {
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
       message: `${model.displayName} is not available in Ollama right now.`,
     });
   }
 
+  // Google models don't need runtime check
+  const runtimeAvailable = model.provider === "google" || runtimeOllamaModels.has(model.providerModel);
+
   return {
-    ...toPublicModel(model, true),
+    ...toPublicModel(model, runtimeAvailable),
     activePlanCode: planCode,
   };
-}
-
-export function getDefaultModelIdFromSeeds() {
-  return AI_MODEL_SEEDS.find((model) => model.isDefault)?.id ?? AI_MODEL_SEEDS[0]?.id ?? "local-default";
 }

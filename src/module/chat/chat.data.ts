@@ -24,7 +24,8 @@ export type ChatWorkspaceMessage = {
   };
 };
 
-export const CHAT_RECENT_THREADS_LIMIT = 12;
+export const CHAT_RECENT_THREADS_LIMIT = 9;
+export const CHAT_ARCHIVED_THREADS_LIMIT = 5;
 
 export const chatSuggestions = [
   "What are the latest trends in AI?",

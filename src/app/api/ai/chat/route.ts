@@ -1,15 +1,16 @@
 import { TRPCError } from "@trpc/server";
-import { convertToModelMessages, streamText, type LanguageModelUsage, type UIMessage } from "ai";
+import { convertToModelMessages, type LanguageModelUsage, streamText, type UIMessage } from "ai";
 import { z } from "zod/v3";
 import { checkArcjet } from "@/app/api/auth/[...all]/arkjet.config";
 import { getServerSession } from "@/core/auth/auth.server";
 import { getChatModel } from "@/module/ai/ai.provider";
 import { extractPlainTextFromMessage } from "@/module/ai/ai.tokens";
 import { finalizeChatExchange, prepareChatExchange } from "@/module/chat/chat.orchestration";
-import { getReasoningLevelTemperature, type ChatReasoningLevel } from "@/module/chat/chat.runtime";
+import { type ChatReasoningLevel, getReasoningLevelTemperature } from "@/module/chat/chat.runtime";
 import { failAssistantMessage } from "@/module/chat/chat.service";
 import { settleReservedCredits } from "@/module/credits/credits.service";
 import { jsonFailure } from "@/shared/config/api.utils";
+import { debugError } from "@/shared/utils/lib/logger.utils";
 
 type UsageSnapshot = Pick<LanguageModelUsage, "inputTokens" | "outputTokens" | "totalTokens"> & {
   reasoningTokens?: number;
@@ -163,8 +164,8 @@ export async function POST(req: Request) {
 
     try {
       const result = streamText({
-        model: getChatModel(prepared.resolvedModel.providerModel),
-        providerOptions: { ollama: { think: reasoningPreference.reasoningEnabled } },
+        model: getChatModel(prepared.resolvedModel.providerModel, prepared.resolvedModel.provider),
+        providerOptions: prepared.resolvedModel.provider === "ollama" ? { ollama: { think: reasoningPreference.reasoningEnabled } } : {},
         messages: await convertToModelMessages(prepared.context.messages),
         temperature: reasoningPreference.temperature,
         abortSignal: req.signal,
@@ -274,6 +275,7 @@ export async function POST(req: Request) {
         },
       });
     } catch (error) {
+      debugError("API:AI:CHAT", "Stream error during chat generation", error);
       await failAssistantMessage({
         userId: user.id,
         threadId: prepared.thread.id,
@@ -296,6 +298,7 @@ export async function POST(req: Request) {
       return buildErrorResponse(error);
     }
   } catch (error) {
+    debugError("API:AI:CHAT", "Unhandled error in chat route", error);
     return buildErrorResponse(error);
   }
 }

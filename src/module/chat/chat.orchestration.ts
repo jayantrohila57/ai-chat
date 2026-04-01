@@ -1,6 +1,7 @@
 import type { UIMessage } from "ai";
-import { estimateCreditReservation, estimateTokenCount, estimateTokensFromMessages } from "@/module/ai/ai.tokens";
+import type { chatMessage } from "@/core/db/db.schema";
 import { calculateCreditCostFromTokens, getResolvedAiModelForUser } from "@/module/ai/ai.models";
+import { estimateCreditReservation, estimateTokenCount, estimateTokensFromMessages } from "@/module/ai/ai.tokens";
 import {
   createAssistantPlaceholder,
   ensureThreadForRequest,
@@ -15,7 +16,6 @@ import {
   settleReservedCredits,
 } from "@/module/credits/credits.service";
 import { serverEnv } from "@/shared/config/env.server";
-import type { chatMessage } from "@/core/db/db.schema";
 
 export async function prepareChatExchange(input: {
   latestUserMessage: UIMessage;

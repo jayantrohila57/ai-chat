@@ -28,17 +28,17 @@ export function AppSidebar() {
       <SidebarHeader className="bg-background rounded-t-xl shadow-sm ">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent group data-[state=open]:text-sidebar-accent-foreground"
-            >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg ">
-                <MessageCircle className="size-4 fill-current block group-data-[state=collapsed]:hidden" />
-                <SidebarTrigger asChild className="size-4 hidden group-data-[state=collapsed]:block" />
+            <SidebarMenuButton size="lg" className="group">
+              <div className="flex aspect-square bg-primary size-8 items-center justify-center rounded-lg">
+                <MessageCircle className="size-4 fill-primary-foreground stroke-primary-foreground block group-data-[state=collapsed]:hidden" />
+                <SidebarTrigger
+                  asChild
+                  className="size-4 stroke-primary-foreground hidden group-data-[state=collapsed]:block group-hover:fill-primary"
+                />
               </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
+              <div className="grid flex-1 text-left text-base font-bold leading-tight">
                 <Link href="/" className="truncate font-medium hover:underline">
-                  AI Chat App
+                  AI Chat
                 </Link>
                 <span className="truncate text-xs text-muted-foreground font-mono">v1.0.0</span>
               </div>

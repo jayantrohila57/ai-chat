@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createRuntimeAiModelId, getRuntimeProviderModelFromId, isRuntimeAiModelId } from "@/module/ai/ai.models";
-import { mapPersistedMessagesToUiMessages } from "@/module/chat/chat-message.utils";
 import { getReasoningLevelTemperature } from "@/module/chat/chat.runtime";
+import { mapPersistedMessagesToUiMessages } from "@/module/chat/chat-message.utils";
 import {
   clearThreadDraftSnapshot,
   createThreadDraftKey,

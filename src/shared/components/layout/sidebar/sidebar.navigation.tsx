@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { startTransition } from "react";
 import { toast } from "sonner";
 import { apiClient, getApiErrorMessage, getApiResponseData, getApiResponseMessage } from "@/core/api/api.client";
-import { CHAT_RECENT_THREADS_LIMIT } from "@/module/chat/chat.data";
+import { CHAT_ARCHIVED_THREADS_LIMIT, CHAT_RECENT_THREADS_LIMIT } from "@/module/chat/chat.data";
 import { PATH } from "@/shared/config/routes";
 import {
   SidebarGroup,
@@ -85,7 +85,7 @@ export function NavMain() {
     },
     onSettled: () => {
       void utils.chat.list.invalidate({ archived: false, limit: CHAT_RECENT_THREADS_LIMIT });
-      void utils.chat.list.invalidate({ archived: true, limit: CHAT_RECENT_THREADS_LIMIT });
+      void utils.chat.list.invalidate({ archived: true, limit: CHAT_ARCHIVED_THREADS_LIMIT });
     },
   });
 

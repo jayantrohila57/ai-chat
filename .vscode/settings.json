@@ -29,9 +29,11 @@
     "ORPC",
     "qwen",
     "Squircle",
+    "tokenlens",
     "unlazy",
     "uuidv",
-    "vaul"
+    "vaul",
+    "VIEWBOX"
   ],
   "editor.dropIntoEditor.preferences": [],
   "search.exclude": {

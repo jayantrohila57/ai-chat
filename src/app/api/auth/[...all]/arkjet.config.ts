@@ -59,7 +59,6 @@ export async function checkArcjet(request: Request) {
 
   const url = new URL(request.url);
   const path = url.pathname;
-  const body = await safeJson(request);
   const session = await getServerSession();
   const userIdOrIp = (session?.user?.id ?? findIp(request)) || "127.0.0.1";
 
@@ -68,6 +67,7 @@ export async function checkArcjet(request: Request) {
   const isSignup = path.endsWith("/auth/sign-up");
 
   if (isSignin || isSignup) {
+    const body = await safeJson(request);
     if (body && typeof body.email === "string") {
       // Email/password login -> rate limit + email check
       return aj
